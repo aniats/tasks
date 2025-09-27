@@ -2,6 +2,8 @@ package main
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestUnpackString(t *testing.T) {
@@ -79,15 +81,10 @@ func TestUnpackString(t *testing.T) {
 			result, err := unpackString(tt.input, tt.escapeEnabled)
 
 			if tt.shouldError {
-				if err == nil {
-					t.Errorf("Expected error for input %q, but got result: %q", tt.input, result)
-				}
+				assert.Error(t, err)
 			} else {
-				if err != nil {
-					t.Errorf("Unexpected error for input %q: %v", tt.input, err)
-				} else if result != tt.expected {
-					t.Errorf("For input %q, expected %q, but got %q", tt.input, tt.expected, result)
-				}
+				assert.NoError(t, err)
+				assert.Equal(t, tt.expected, result)
 			}
 		})
 	}
@@ -154,15 +151,10 @@ func TestUnpackStringWithEscape(t *testing.T) {
 			result, err := unpackString(tt.input, tt.escapeEnabled)
 
 			if tt.shouldError {
-				if err == nil {
-					t.Errorf("Expected error for input %q, but got result: %q", tt.input, result)
-				}
+				assert.Error(t, err)
 			} else {
-				if err != nil {
-					t.Errorf("Unexpected error for input %q: %v", tt.input, err)
-				} else if result != tt.expected {
-					t.Errorf("For input %q, expected %q, but got %q", tt.input, tt.expected, result)
-				}
+				assert.NoError(t, err)
+				assert.Equal(t, tt.expected, result)
 			}
 		})
 	}
@@ -229,15 +221,10 @@ func TestPackString(t *testing.T) {
 			result, err := packString(tt.input)
 
 			if tt.shouldError {
-				if err == nil {
-					t.Errorf("Expected error for input %q, but got result: %q", tt.input, result)
-				}
+				assert.Error(t, err)
 			} else {
-				if err != nil {
-					t.Errorf("Unexpected error for input %q: %v", tt.input, err)
-				} else if result != tt.expected {
-					t.Errorf("For input %q, expected %q, but got %q", tt.input, tt.expected, result)
-				}
+				assert.NoError(t, err)
+				assert.Equal(t, tt.expected, result)
 			}
 		})
 	}

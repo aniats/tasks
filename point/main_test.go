@@ -3,6 +3,8 @@ package main
 import (
 	"math"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewPoint(t *testing.T) {
@@ -30,23 +32,13 @@ func TestNewPoint(t *testing.T) {
 			point, err := NewPoint(tt.lat, tt.lng)
 
 			if tt.shouldErr {
-				if err == nil {
-					t.Errorf("Expected error but got none")
-				}
+				assert.Error(t, err)
 				return
 			}
 
-			if err != nil {
-				t.Errorf("Unexpected error: %v", err)
-				return
-			}
-
-			if point.Latitude != tt.lat {
-				t.Errorf("Expected latitude %f, got %f", tt.lat, point.Latitude)
-			}
-			if point.Longitude != tt.lng {
-				t.Errorf("Expected longitude %f, got %f", tt.lng, point.Longitude)
-			}
+			assert.NoError(t, err)
+			assert.Equal(t, tt.lat, point.Latitude)
+			assert.Equal(t, tt.lng, point.Longitude)
 		})
 	}
 }
@@ -75,11 +67,10 @@ func TestValidateCoordinates(t *testing.T) {
 
 			err := validateCoordinates(tt.lat, tt.lng)
 
-			if tt.shouldErr && err == nil {
-				t.Errorf("Expected error but got none")
-			}
-			if !tt.shouldErr && err != nil {
-				t.Errorf("Unexpected error: %v", err)
+			if tt.shouldErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
 			}
 		})
 	}
@@ -115,9 +106,7 @@ func TestPointString(t *testing.T) {
 			t.Parallel()
 
 			result := tt.point.String()
-			if result != tt.expected {
-				t.Errorf("Expected %s, got %s", tt.expected, result)
-			}
+			assert.Equal(t, tt.expected, result)
 		})
 	}
 }
@@ -167,16 +156,10 @@ func TestDistanceTo(t *testing.T) {
 			t.Parallel()
 
 			distance := tt.p1.DistanceTo(tt.p2)
-			if math.Abs(distance-tt.expected) > tt.tolerance {
-				t.Errorf("Expected distance ~%.2f km (±%.2f), got %.2f km",
-					tt.expected, tt.tolerance, distance)
-			}
+			assert.InDelta(t, tt.expected, distance, tt.tolerance)
 
 			reverseDistance := tt.p2.DistanceTo(tt.p1)
-			if math.Abs(distance-reverseDistance) > 0.001 {
-				t.Errorf("Distance not symmetric: A->B = %.6f, B->A = %.6f",
-					distance, reverseDistance)
-			}
+			assert.InDelta(t, distance, reverseDistance, 0.001)
 		})
 	}
 }
@@ -214,11 +197,7 @@ func TestIsWithinRadius(t *testing.T) {
 			t.Parallel()
 
 			result := tt.point.IsWithinRadius(tt.center, tt.radius)
-			if result != tt.expected {
-				distance := tt.point.DistanceTo(tt.center)
-				t.Errorf("Expected %v, got %v (distance: %.2f km, radius: %.2f km)",
-					tt.expected, result, distance, tt.radius)
-			}
+			assert.Equal(t, tt.expected, result)
 		})
 	}
 }
@@ -248,10 +227,7 @@ func TestHaversineDistance(t *testing.T) {
 			t.Parallel()
 
 			distance := haversineDistance(tt.p1, tt.p2)
-			if math.Abs(distance-tt.expected) > tt.tolerance {
-				t.Errorf("Expected distance ~%.2f km (±%.2f), got %.2f km",
-					tt.expected, tt.tolerance, distance)
-			}
+			assert.InDelta(t, tt.expected, distance, tt.tolerance)
 		})
 	}
 }
@@ -277,9 +253,7 @@ func TestToRadians(t *testing.T) {
 			t.Parallel()
 
 			result := toRadians(tt.degrees)
-			if math.Abs(result-tt.expected) > 0.000001 {
-				t.Errorf("Expected %.6f, got %.6f", tt.expected, result)
-			}
+			assert.InDelta(t, tt.expected, result, 0.000001)
 		})
 	}
 }
@@ -293,16 +267,16 @@ func TestParsePoint(t *testing.T) {
 		expected  *Point
 		shouldErr bool
 	}{
-		{"Valid point", "55.7558,37.6176", &Point{55.7558, 37.6176}, false},
-		{"Valid with spaces", " 55.7558 , 37.6176 ", &Point{55.7558, 37.6176}, false},
+		{"Valid point", "55.7558,37.6176", &Point{Latitude: 55.7558, Longitude: 37.6176}, false},
+		{"Valid with spaces", " 55.7558 , 37.6176 ", &Point{Latitude: 55.7558, Longitude: 37.6176}, false},
 		{"Invalid format missing comma", "55.7558 37.6176", nil, true},
 		{"Invalid format too many parts", "55.7558,37.6176,10", nil, true},
 		{"Invalid latitude", "invalid,37.6176", nil, true},
 		{"Invalid longitude", "55.7558,invalid", nil, true},
 		{"Out of range latitude", "91.0,37.6176", nil, true},
 		{"Out of range longitude", "55.7558,181.0", nil, true},
-		{"Example coordinates", "2,0", &Point{2, 0}, false},
-		{"Example coordinates 2", "0,0", &Point{0, 0}, false},
+		{"Example coordinates", "2,0", &Point{Latitude: 2, Longitude: 0}, false},
+		{"Example coordinates 2", "0,0", &Point{Latitude: 0, Longitude: 0}, false},
 	}
 
 	for _, tt := range tests {
@@ -312,20 +286,13 @@ func TestParsePoint(t *testing.T) {
 			result, err := parsePoint(tt.input)
 
 			if tt.shouldErr {
-				if err == nil {
-					t.Errorf("Expected error but got none")
-				}
+				assert.Error(t, err)
 				return
 			}
 
-			if err != nil {
-				t.Errorf("Unexpected error: %v", err)
-				return
-			}
-
-			if result.Latitude != tt.expected.Latitude || result.Longitude != tt.expected.Longitude {
-				t.Errorf("Expected %v, got %v", tt.expected, result)
-			}
+			assert.NoError(t, err)
+			assert.Equal(t, tt.expected.Latitude, result.Latitude)
+			assert.Equal(t, tt.expected.Longitude, result.Longitude)
 		})
 	}
 }
@@ -378,20 +345,12 @@ func TestParsePoints(t *testing.T) {
 			result, err := parsePoints(tt.input)
 
 			if tt.shouldErr {
-				if err == nil {
-					t.Errorf("Expected error but got none")
-				}
+				assert.Error(t, err)
 				return
 			}
 
-			if err != nil {
-				t.Errorf("Unexpected error: %v", err)
-				return
-			}
-
-			if len(result) != tt.expected {
-				t.Errorf("Expected %d points, got %d", tt.expected, len(result))
-			}
+			assert.NoError(t, err)
+			assert.Len(t, result, tt.expected)
 		})
 	}
 }

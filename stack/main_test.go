@@ -1,86 +1,56 @@
 package main
 
 import (
-	"errors"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestStack_Push(t *testing.T) {
 	stack := NewStack()
 
 	stack.Push(1)
-	if stack.IsEmpty() {
-		t.Error("Стек не должен быть пустым после добавления элемента")
-	}
-
-	if stack.Size() != 1 {
-		t.Errorf("Размер стека должен быть 1, получен: %d", stack.Size())
-	}
+	assert.False(t, stack.IsEmpty())
+	assert.Equal(t, 1, stack.Size())
 
 	stack.Push("hello")
 	stack.Push(3.14)
 	stack.Push(true)
 
-	if stack.Size() != 4 {
-		t.Errorf("Размер стека должен быть 4, получен: %d", stack.Size())
-	}
+	assert.Equal(t, 4, stack.Size())
 }
 
 func TestStack_Pop(t *testing.T) {
 	stack := NewStack()
 
 	_, err := stack.Pop()
-	if err == nil {
-		t.Error("Pop() на пустом стеке должен возвращать ошибку")
-	}
-
-	if !errors.Is(err, errorStackEmpty) {
-		t.Error("Pop() на пустом стеке должен возвращать errorStackEmpty")
-	}
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, errorStackEmpty)
 
 	stack.Push(1)
 	stack.Push(2)
 	stack.Push(3)
 
 	item, err := stack.Pop()
-	if err != nil {
-		t.Errorf("Pop() не должен возвращать ошибку: %v", err)
-	}
-
-	if item != 3 {
-		t.Errorf("Pop() должен возвращать 3, получен: %v", item)
-	}
-
-	if stack.Size() != 2 {
-		t.Errorf("Размер стека после Pop() должен быть 2, получен: %d", stack.Size())
-	}
+	assert.NoError(t, err)
+	assert.Equal(t, 3, item)
+	assert.Equal(t, 2, stack.Size())
 
 	item, _ = stack.Pop()
-	if item != 2 {
-		t.Errorf("Второй Pop() должен возвращать 2, получен: %v", item)
-	}
+	assert.Equal(t, 2, item)
 
 	item, _ = stack.Pop()
-	if item != 1 {
-		t.Errorf("Третий Pop() должен возвращать 1, получен: %v", item)
-	}
+	assert.Equal(t, 1, item)
 
-	if !stack.IsEmpty() {
-		t.Error("Стек должен быть пустым после извлечения всех элементов")
-	}
+	assert.True(t, stack.IsEmpty())
 }
 
 func TestStack_Peek(t *testing.T) {
 	stack := NewStack()
 
 	_, err := stack.Peek()
-	if err == nil {
-		t.Error("Peek() на пустом стеке должен возвращать ошибку")
-	}
-
-	if !errors.Is(err, errorStackEmpty) {
-		t.Error("Peek() на пустом стеке должен возвращать errorStackEmpty")
-	}
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, errorStackEmpty)
 
 	stack.Push("first")
 	stack.Push("second")
@@ -89,62 +59,39 @@ func TestStack_Peek(t *testing.T) {
 	initialSize := stack.Size()
 
 	item, err := stack.Peek()
-	if err != nil {
-		t.Errorf("Peek() не должен возвращать ошибку: %v", err)
-	}
-
-	if item != "third" {
-		t.Errorf("Peek() должен возвращать 'third', получен: %v", item)
-	}
-
-	if stack.Size() != initialSize {
-		t.Errorf("Peek() не должен изменять размер стека. Был: %d, стал: %d",
-			initialSize, stack.Size())
-	}
+	assert.NoError(t, err)
+	assert.Equal(t, "third", item)
+	assert.Equal(t, initialSize, stack.Size())
 
 	item2, _ := stack.Peek()
-	if item != item2 {
-		t.Error("Повторный Peek() должен возвращать тот же элемент")
-	}
+	assert.Equal(t, item, item2)
 }
 
 func TestStack_IsEmpty(t *testing.T) {
 	stack := NewStack()
 
-	if !stack.IsEmpty() {
-		t.Error("Новый стек должен быть пустым")
-	}
+	assert.True(t, stack.IsEmpty())
 
 	stack.Push(1)
-	if stack.IsEmpty() {
-		t.Error("Стек не должен быть пустым после добавления элемента")
-	}
+	assert.False(t, stack.IsEmpty())
 
 	stack.Pop()
-	if !stack.IsEmpty() {
-		t.Error("Стек должен быть пустым после извлечения единственного элемента")
-	}
+	assert.True(t, stack.IsEmpty())
 }
 
 func TestStack_Size(t *testing.T) {
 	stack := NewStack()
 
-	if stack.Size() != 0 {
-		t.Errorf("Размер пустого стека должен быть 0, получен: %d", stack.Size())
-	}
+	assert.Equal(t, 0, stack.Size())
 
 	for i := 1; i <= 5; i++ {
 		stack.Push(i)
-		if stack.Size() != i {
-			t.Errorf("Размер стека должен быть %d, получен: %d", i, stack.Size())
-		}
+		assert.Equal(t, i, stack.Size())
 	}
 
 	for i := 4; i >= 0; i-- {
 		stack.Pop()
-		if stack.Size() != i {
-			t.Errorf("Размер стека должен быть %d, получен: %d", i, stack.Size())
-		}
+		assert.Equal(t, i, stack.Size())
 	}
 }
 
@@ -152,9 +99,7 @@ func TestStack_Clear(t *testing.T) {
 	stack := NewStack()
 
 	stack.Clear()
-	if !stack.IsEmpty() {
-		t.Error("Стек должен быть пустым после очистки")
-	}
+	assert.True(t, stack.IsEmpty())
 
 	stack.Push(1)
 	stack.Push(2)
@@ -162,13 +107,8 @@ func TestStack_Clear(t *testing.T) {
 
 	stack.Clear()
 
-	if !stack.IsEmpty() {
-		t.Error("Стек должен быть пустым после очистки")
-	}
-
-	if stack.Size() != 0 {
-		t.Errorf("Размер стека после очистки должен быть 0, получен: %d", stack.Size())
-	}
+	assert.True(t, stack.IsEmpty())
+	assert.Equal(t, 0, stack.Size())
 }
 
 func TestStack_Order(t *testing.T) {
@@ -181,12 +121,7 @@ func TestStack_Order(t *testing.T) {
 
 	for i := len(expected) - 1; i >= 0; i-- {
 		item, err := stack.Pop()
-		if err != nil {
-			t.Fatalf("Ошибка при Pop(): %v", err)
-		}
-
-		if item != expected[i] {
-			t.Errorf("Ожидался элемент %d, получен: %v", expected[i], item)
-		}
+		assert.NoError(t, err)
+		assert.Equal(t, expected[i], item)
 	}
 }
