@@ -1,8 +1,7 @@
-package main
+package polygon
 
 import (
 	"errors"
-	"fmt"
 	"math"
 )
 
@@ -65,28 +64,4 @@ func dist(a, b Point) float64 {
 	dx := a.X - b.X
 	dy := a.Y - b.Y
 	return math.Hypot(dx, dy)
-}
-
-func main() {
-	triangle := []Point{{0, 0}, {4, 0}, {2, 3}}
-	poly, err := NewPolygon(triangle)
-	if err != nil {
-		fmt.Printf("Ошибка создания полигона: %v\n", err)
-		return
-	}
-
-	fmt.Printf("Треугольник с вершинами: %v\n", poly.Vertices)
-	fmt.Printf("Площадь: %.2f\n", poly.Area())
-	fmt.Printf("Периметр: %.2f\n", poly.Perimeter())
-
-	fmt.Println()
-
-	square := []Point{{0, 0}, {2, 0}, {2, 2}, {0, 2}}
-	poly, _ = NewPolygon(square)
-
-	fmt.Printf("Квадрат с вершинами: %v\n", poly.Vertices)
-	fmt.Printf("Площадь: %.2f\n", poly.Area())
-	fmt.Printf("Периметр: %.2f\n", poly.Perimeter())
-
-	fmt.Println()
 }

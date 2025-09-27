@@ -1,4 +1,4 @@
-package main
+package pack
 
 import (
 	"testing"
@@ -78,7 +78,7 @@ func TestUnpackString(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			result, err := unpackString(tt.input, tt.escapeEnabled)
+			result, err := UnpackString(tt.input, tt.escapeEnabled)
 
 			if tt.shouldError {
 				assert.Error(t, err)
@@ -148,7 +148,7 @@ func TestUnpackStringWithEscape(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			result, err := unpackString(tt.input, tt.escapeEnabled)
+			result, err := UnpackString(tt.input, tt.escapeEnabled)
 
 			if tt.shouldError {
 				assert.Error(t, err)
@@ -218,7 +218,7 @@ func TestPackString(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			result, err := packString(tt.input)
+			result, err := PackString(tt.input)
 
 			if tt.shouldError {
 				assert.Error(t, err)

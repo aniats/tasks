@@ -1,4 +1,4 @@
-package main
+package queue
 
 import (
 	"errors"
@@ -67,35 +67,4 @@ func (q *Queue) String() string {
 
 	return fmt.Sprintf("Очередь: %v (спереди: %v, сзади: %v)",
 		q.items, q.items[0], q.items[len(q.items)-1])
-}
-
-func main() {
-	queue := NewQueue()
-
-	queue.Enqueue(1)
-	queue.Enqueue("hello")
-	queue.Enqueue(3.14)
-	queue.Enqueue(true)
-
-	fmt.Println("Очередь после добавления элементов:", queue)
-	fmt.Println("Размер очереди:", queue.Size())
-
-	if front, err := queue.Front(); err == nil {
-		fmt.Println("Первый элемент:", front)
-	}
-
-	if back, err := queue.Back(); err == nil {
-		fmt.Println("Последний элемент:", back)
-	}
-
-	fmt.Println("Извлечение элементов:")
-	for !queue.IsEmpty() {
-		if item, err := queue.Dequeue(); err == nil {
-			fmt.Printf("Извлечен: %v, осталось: %d\n", item, queue.Size())
-		}
-	}
-
-	if _, err := queue.Dequeue(); err != nil {
-		fmt.Println("Ошибка:", err)
-	}
 }
