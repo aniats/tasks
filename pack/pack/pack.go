@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	ErrInvalidString = errors.New("некорректная строка")
+	ErrInvalidString = errors.New("invalid string")
 )
 
 const reverseSolidus = '\\'

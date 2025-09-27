@@ -23,7 +23,7 @@ func processInput(input string, escapeEnabled bool, pack bool) {
 	}
 
 	if err != nil {
-		fmt.Printf("Ошибка: %v\n", err)
+		fmt.Printf("Error: %v\n", err)
 		return
 	}
 
@@ -31,14 +31,14 @@ func processInput(input string, escapeEnabled bool, pack bool) {
 }
 
 func runDaemon(escapeEnabled bool, pack bool) {
-	mode := "распаковки"
+	mode := "unpacking"
 	if pack {
-		mode = "упаковки"
+		mode = "packing"
 	}
 
-	fmt.Printf("Запуск в режиме демона (%s). Ctrl+C для завершения\n", mode)
+	fmt.Printf("Running in daemon mode (%s). Ctrl+C to exit\n", mode)
 	if escapeEnabled {
-		fmt.Println("Режим экранирования включен")
+		fmt.Println("Escape mode enabled")
 	}
 
 	c := make(chan os.Signal, 1)
@@ -46,17 +46,17 @@ func runDaemon(escapeEnabled bool, pack bool) {
 
 	go func() {
 		<-c
-		fmt.Println("\nПолучен сигнал завершения. Выход...")
+		fmt.Println("\nReceived termination signal. Exiting...")
 		os.Exit(0)
 	}()
 
 	reader := bufio.NewReader(os.Stdin)
 
 	for {
-		fmt.Print("Введите строку: ")
+		fmt.Print("Enter string: ")
 		input, err := reader.ReadString('\n')
 		if err != nil {
-			fmt.Printf("Ошибка чтения ввода: %v\n", err)
+			fmt.Printf("Error reading input: %v\n", err)
 			continue
 		}
 
@@ -67,19 +67,19 @@ func runDaemon(escapeEnabled bool, pack bool) {
 
 func showUsage() {
 	progName := filepath.Base(os.Args[0])
-	fmt.Fprintf(os.Stderr, "Использование:\n")
-	fmt.Fprintf(os.Stderr, "  %s --pack [--input <строка>] [--daemon] [--escape]\n", progName)
-	fmt.Fprintf(os.Stderr, "  %s --unpack [--input <строка>] [--daemon] [--escape]\n", progName)
-	fmt.Fprintf(os.Stderr, "\nФлаги:\n")
-	fmt.Fprintf(os.Stderr, "  --pack      Режим упаковки строк\n")
-	fmt.Fprintf(os.Stderr, "  --unpack    Режим распаковки строк\n")
-	fmt.Fprintf(os.Stderr, "  --input     Строка для обработки\n")
-	fmt.Fprintf(os.Stderr, "  --daemon    Запуск в интерактивном режиме\n")
-	fmt.Fprintf(os.Stderr, "  --escape    Включить поддержку экранирования\n")
-	fmt.Fprintf(os.Stderr, "\nПримеры упаковки:\n")
+	fmt.Fprintf(os.Stderr, "Usage:\n")
+	fmt.Fprintf(os.Stderr, "  %s --pack [--input <string>] [--daemon] [--escape]\n", progName)
+	fmt.Fprintf(os.Stderr, "  %s --unpack [--input <string>] [--daemon] [--escape]\n", progName)
+	fmt.Fprintf(os.Stderr, "\nFlags:\n")
+	fmt.Fprintf(os.Stderr, "  --pack      String packing mode\n")
+	fmt.Fprintf(os.Stderr, "  --unpack    String unpacking mode\n")
+	fmt.Fprintf(os.Stderr, "  --input     String to process\n")
+	fmt.Fprintf(os.Stderr, "  --daemon    Run in interactive mode\n")
+	fmt.Fprintf(os.Stderr, "  --escape    Enable escape support\n")
+	fmt.Fprintf(os.Stderr, "\nPacking examples:\n")
 	fmt.Fprintf(os.Stderr, "  %s --pack --input 'aaaabccddddde'\n", progName)
 	fmt.Fprintf(os.Stderr, "  %s --pack --daemon\n", progName)
-	fmt.Fprintf(os.Stderr, "\nПримеры распаковки:\n")
+	fmt.Fprintf(os.Stderr, "\nUnpacking examples:\n")
 	fmt.Fprintf(os.Stderr, "  %s --unpack --input 'a4bc2d5e'\n", progName)
 	fmt.Fprintf(os.Stderr, "  %s --unpack --input 'qwe\\4\\5' --escape\n", progName)
 	fmt.Fprintf(os.Stderr, "  %s --unpack --daemon --escape\n", progName)
@@ -96,12 +96,12 @@ func showUsage() {
 // go run main.go --pack --input 'aaaabccddddde'
 func main() {
 	var (
-		inputFlag  = flag.String("input", "", "Строка для обработки")
-		daemonFlag = flag.Bool("daemon", false, "Запуск в интерактивном режиме")
-		escapeFlag = flag.Bool("escape", false, "Включить поддержку экранирования")
-		packFlag   = flag.Bool("pack", false, "Режим упаковки строк")
-		unpackFlag = flag.Bool("unpack", false, "Режим распаковки строк")
-		helpFlag   = flag.Bool("help", false, "Показать справку")
+		inputFlag  = flag.String("input", "", "String to process")
+		daemonFlag = flag.Bool("daemon", false, "Run in interactive mode")
+		escapeFlag = flag.Bool("escape", false, "Enable escape support")
+		packFlag   = flag.Bool("pack", false, "String packing mode")
+		unpackFlag = flag.Bool("unpack", false, "String unpacking mode")
+		helpFlag   = flag.Bool("help", false, "Show help")
 	)
 
 	flag.Usage = showUsage
@@ -113,13 +113,13 @@ func main() {
 	}
 
 	if !*packFlag && !*unpackFlag {
-		fmt.Fprintf(os.Stderr, "Ошибка: необходимо указать режим --pack или --unpack\n\n")
+		fmt.Fprintf(os.Stderr, "Error: must specify either --pack or --unpack mode\n\n")
 		showUsage()
 		os.Exit(1)
 	}
 
 	if *packFlag && *unpackFlag {
-		fmt.Fprintf(os.Stderr, "Ошибка: нельзя одновременно использовать --pack и --unpack\n\n")
+		fmt.Fprintf(os.Stderr, "Error: cannot use --pack and --unpack simultaneously\n\n")
 		showUsage()
 		os.Exit(1)
 	}
@@ -127,7 +127,7 @@ func main() {
 	pack := *packFlag
 
 	if *inputFlag != "" && *daemonFlag {
-		fmt.Fprintf(os.Stderr, "Ошибка: нельзя одновременно использовать --input и --daemon\n\n")
+		fmt.Fprintf(os.Stderr, "Error: cannot use --input and --daemon simultaneously\n\n")
 		showUsage()
 		os.Exit(1)
 	}
@@ -143,7 +143,7 @@ func main() {
 	}
 
 	if len(os.Args) == 1 {
-		fmt.Fprintf(os.Stderr, "Ошибка: не указан режим работы\n\n")
+		fmt.Fprintf(os.Stderr, "Error: no operating mode specified\n\n")
 		showUsage()
 		os.Exit(1)
 	}

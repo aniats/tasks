@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-var errorStackEmpty = errors.New("стек пуст")
+var errorStackEmpty = errors.New("stack is empty")
 
 type Stack struct {
 	items []interface{}
@@ -55,10 +55,10 @@ func (s *Stack) Clear() {
 
 func (s *Stack) String() string {
 	if s.IsEmpty() {
-		return "Стек пуст: []"
+		return "Stack is empty: []"
 	}
 
-	return fmt.Sprintf("Стек: %v (сверху: %v)", s.items, s.items[len(s.items)-1])
+	return fmt.Sprintf("Stack: %v (top: %v)", s.items, s.items[len(s.items)-1])
 }
 
 func main() {
@@ -69,21 +69,21 @@ func main() {
 	stack.Push(3.14)
 	stack.Push(true)
 
-	fmt.Println("Стек:", stack)
-	fmt.Println("Размер стека:", stack.Size())
+	fmt.Println("Stack:", stack)
+	fmt.Println("Stack size:", stack.Size())
 
 	if top, err := stack.Peek(); err == nil {
-		fmt.Println("Элемент сверху:", top)
+		fmt.Println("Top element:", top)
 	}
 
-	fmt.Println("Извлечение:")
+	fmt.Println("Extracting:")
 	for !stack.IsEmpty() {
 		if item, err := stack.Pop(); err == nil {
-			fmt.Printf("Извлечен: %v, осталось: %d\n", item, stack.Size())
+			fmt.Printf("Extracted: %v, remaining: %d\n", item, stack.Size())
 		}
 	}
 
 	if _, err := stack.Pop(); err != nil {
-		fmt.Println("Ошибка:", err)
+		fmt.Println("Error:", err)
 	}
 }

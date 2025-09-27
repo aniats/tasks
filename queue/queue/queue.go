@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-var errorQueueEmpty = errors.New("очередь пуста")
+var errorQueueEmpty = errors.New("queue is empty")
 
 type Queue struct {
 	items []interface{}
@@ -62,9 +62,9 @@ func (q *Queue) Clear() {
 
 func (q *Queue) String() string {
 	if q.IsEmpty() {
-		return "Очередь пуста: []"
+		return "Queue is empty: []"
 	}
 
-	return fmt.Sprintf("Очередь: %v (спереди: %v, сзади: %v)",
+	return fmt.Sprintf("Queue: %v (front: %v, back: %v)",
 		q.items, q.items[0], q.items[len(q.items)-1])
 }

@@ -13,25 +13,25 @@ func main() {
 	q.Enqueue(3.14)
 	q.Enqueue(true)
 
-	fmt.Println("Очередь после добавления элементов:", q)
-	fmt.Println("Размер очереди:", q.Size())
+	fmt.Println("Queue after adding elements:", q)
+	fmt.Println("Queue size:", q.Size())
 
 	if front, err := q.Front(); err == nil {
-		fmt.Println("Первый элемент:", front)
+		fmt.Println("First element:", front)
 	}
 
 	if back, err := q.Back(); err == nil {
-		fmt.Println("Последний элемент:", back)
+		fmt.Println("Last element:", back)
 	}
 
-	fmt.Println("Извлечение элементов:")
+	fmt.Println("Extracting elements:")
 	for !q.IsEmpty() {
 		if item, err := q.Dequeue(); err == nil {
-			fmt.Printf("Извлечен: %v, осталось: %d\n", item, q.Size())
+			fmt.Printf("Extracted: %v, remaining: %d\n", item, q.Size())
 		}
 	}
 
 	if _, err := q.Dequeue(); err != nil {
-		fmt.Println("Ошибка:", err)
+		fmt.Println("Error:", err)
 	}
 }
