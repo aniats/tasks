@@ -16,42 +16,42 @@ var (
 	ErrorRemoveNilNode        = errors.New("cannot remove nil node")
 )
 
-type node struct {
+type node[V comparable] struct {
 	key  string
-	val  interface{}
-	prev *node
-	next *node
+	val  V
+	prev *node[V]
+	next *node[V]
 }
 
-type LRU struct {
+type LRU[V comparable] struct {
 	mu       sync.RWMutex
-	index    map[string]*node
-	head     *node
-	tail     *node
+	index    map[string]*node[V]
+	head     *node[V]
+	tail     *node[V]
 	capacity int64
 	size     int64
 }
 
-func NewLRU(capacity int64) (*LRU, error) {
+func NewLRU[V comparable](capacity int64) (*LRU[V], error) {
 	if capacity <= 0 {
 		return nil, ErrorZeroCapacity
 	}
 
-	head := &node{}
-	tail := &node{}
+	head := &node[V]{}
+	tail := &node[V]{}
 	head.next = tail
 	tail.prev = head
 
-	return &LRU{
+	return &LRU[V]{
 		capacity: capacity,
 		size:     0,
 		head:     head,
 		tail:     tail,
-		index:    make(map[string]*node),
+		index:    make(map[string]*node[V]),
 	}, nil
 }
 
-func (c *LRU) remove(n *node) error {
+func (c *LRU[V]) remove(n *node[V]) error {
 	if n == nil {
 		return ErrorRemoveNilNode
 	}
@@ -65,7 +65,7 @@ func (c *LRU) remove(n *node) error {
 	return nil
 }
 
-func (c *LRU) pushFront(n *node) error {
+func (c *LRU[V]) pushFront(n *node[V]) error {
 	if n == nil {
 		return ErrorPushNilNode
 	}
@@ -77,7 +77,7 @@ func (c *LRU) pushFront(n *node) error {
 	return nil
 }
 
-func (c *LRU) popTail() (*node, error) {
+func (c *LRU[V]) popTail() (*node[V], error) {
 	if c.tail == nil || c.tail.prev == nil {
 		return nil, ErrorCacheStructureBroken
 	}
@@ -93,16 +93,17 @@ func (c *LRU) popTail() (*node, error) {
 	return lru, nil
 }
 
-func (c *LRU) moveToFront(n *node) error {
+func (c *LRU[V]) moveToFront(n *node[V]) error {
 	if err := c.remove(n); err != nil {
 		return err
 	}
 	return c.pushFront(n)
 }
 
-func (c *LRU) Get(key string) (val interface{}, err error) {
+func (c *LRU[V]) Get(key string) (val V, err error) {
 	if key == "" {
-		return nil, ErrorEmptyKey
+		var zero V
+		return zero, ErrorEmptyKey
 	}
 
 	c.mu.Lock()
@@ -110,18 +111,21 @@ func (c *LRU) Get(key string) (val interface{}, err error) {
 
 	n, ok := c.index[key]
 	if !ok {
-		return nil, ErrorKeyNotFound
+		var zero V
+		return zero, ErrorKeyNotFound
 	}
 
 	if err := c.moveToFront(n); err != nil {
-		return nil, err
+		var zero V
+		return zero, err
 	}
 	return n.val, nil
 }
 
-func (c *LRU) Put(key string, val interface{}) (evictedKey string, evictedVal interface{}, evicted bool, err error) {
+func (c *LRU[V]) Put(key string, val V) (evictedKey string, evictedVal V, evicted bool, err error) {
 	if key == "" {
-		return "", nil, false, ErrorEmptyKey
+		var zero V
+		return "", zero, false, ErrorEmptyKey
 	}
 
 	c.mu.Lock()
@@ -130,14 +134,17 @@ func (c *LRU) Put(key string, val interface{}) (evictedKey string, evictedVal in
 	if n, ok := c.index[key]; ok {
 		n.val = val
 		if err := c.moveToFront(n); err != nil {
-			return "", nil, false, err
+			var zero V
+			return "", zero, false, err
 		}
-		return "", nil, false, nil
+		var zero V
+		return "", zero, false, nil
 	}
 
-	n := &node{key: key, val: val}
+	n := &node[V]{key: key, val: val}
 	if err := c.pushFront(n); err != nil {
-		return "", nil, false, err
+		var zero V
+		return "", zero, false, err
 	}
 
 	c.index[key] = n
@@ -146,7 +153,8 @@ func (c *LRU) Put(key string, val interface{}) (evictedKey string, evictedVal in
 	if c.size > c.capacity {
 		lru, err := c.popTail()
 		if err != nil {
-			return "", nil, false, err
+			var zero V
+			return "", zero, false, err
 		}
 
 		if lru != nil {
@@ -155,10 +163,11 @@ func (c *LRU) Put(key string, val interface{}) (evictedKey string, evictedVal in
 			return lru.key, lru.val, true, nil
 		}
 	}
-	return "", nil, false, nil
+	var zero V
+	return "", zero, false, nil
 }
 
-func (c *LRU) Delete(key string) error {
+func (c *LRU[V]) Delete(key string) error {
 	if key == "" {
 		return ErrorEmptyKey
 	}
@@ -180,9 +189,10 @@ func (c *LRU) Delete(key string) error {
 	return nil
 }
 
-func (c *LRU) Peek(key string) (val interface{}, err error) {
+func (c *LRU[V]) Peek(key string) (val V, err error) {
 	if key == "" {
-		return nil, ErrorEmptyKey
+		var zero V
+		return zero, ErrorEmptyKey
 	}
 
 	c.mu.RLock()
@@ -190,12 +200,13 @@ func (c *LRU) Peek(key string) (val interface{}, err error) {
 
 	n, ok := c.index[key]
 	if !ok {
-		return nil, ErrorKeyNotFound
+		var zero V
+		return zero, ErrorKeyNotFound
 	}
 	return n.val, nil
 }
 
-func (c *LRU) Len() (int64, error) {
+func (c *LRU[V]) Len() (int64, error) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 

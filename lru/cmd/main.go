@@ -6,7 +6,7 @@ import (
 )
 
 func main() {
-	cache, err := lru.NewLRU(2)
+	cache, err := lru.NewLRU[int](2)
 	if err != nil {
 		println(err.Error())
 		return

@@ -31,7 +31,7 @@ func TestNewLRU(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cache, err := NewLRU(tt.capacity)
+			cache, err := NewLRU[string](tt.capacity)
 
 			if tt.wantErr != nil {
 				assert.ErrorIs(t, err, tt.wantErr)
@@ -50,7 +50,7 @@ func TestNewLRU(t *testing.T) {
 }
 
 func TestLRU_Get(t *testing.T) {
-	cache, _ := NewLRU(2)
+	cache, _ := NewLRU[string](2)
 
 	_, err := cache.Get("")
 	assert.ErrorIs(t, err, ErrorEmptyKey)
@@ -75,7 +75,7 @@ func TestLRU_Get(t *testing.T) {
 }
 
 func TestLRU_Put(t *testing.T) {
-	cache, _ := NewLRU(2)
+	cache, _ := NewLRU[string](2)
 
 	_, _, _, err := cache.Put("", "value")
 	assert.ErrorIs(t, err, ErrorEmptyKey)
@@ -113,7 +113,7 @@ func TestLRU_Put(t *testing.T) {
 }
 
 func TestLRU_Delete(t *testing.T) {
-	cache, _ := NewLRU(3)
+	cache, _ := NewLRU[string](3)
 
 	err := cache.Delete("")
 	assert.ErrorIs(t, err, ErrorEmptyKey)
@@ -135,7 +135,7 @@ func TestLRU_Delete(t *testing.T) {
 }
 
 func TestLRU_Peek(t *testing.T) {
-	cache, _ := NewLRU(2)
+	cache, _ := NewLRU[string](2)
 
 	_, err := cache.Peek("")
 	assert.ErrorIs(t, err, ErrorEmptyKey)
@@ -157,7 +157,7 @@ func TestLRU_Peek(t *testing.T) {
 }
 
 func TestLRU_Len(t *testing.T) {
-	cache, _ := NewLRU(3)
+	cache, _ := NewLRU[string](3)
 
 	size, err := cache.Len()
 	assert.NoError(t, err)
