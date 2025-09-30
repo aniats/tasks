@@ -6,14 +6,8 @@ import (
 )
 
 var (
-	ErrorZeroCapacity         = errors.New("capacity must be greater than zero")
-	ErrorEmptyKey             = errors.New("key cannot be empty")
-	ErrorKeyNotFound          = errors.New("key not found")
-	ErrorCacheEmpty           = errors.New("cache is empty")
-	ErrorPushNilNode          = errors.New("cannot push nil node")
-	ErrorCacheStructureBroken = errors.New("cache structure is corrupted")
-	ErrorCacheSize            = errors.New("invalid cache size")
-	ErrorRemoveNilNode        = errors.New("cannot remove nil node")
+	ErrorZeroCapacity = errors.New("capacity must be greater than zero")
+	ErrorEmptyKey     = errors.New("key cannot be empty")
 )
 
 type node[V comparable] struct {
@@ -23,11 +17,15 @@ type node[V comparable] struct {
 	next *node[V]
 }
 
+type list[V comparable] struct {
+	head *node[V]
+	tail *node[V]
+}
+
 type LRU[V comparable] struct {
 	mu       sync.RWMutex
 	index    map[string]*node[V]
-	head     *node[V]
-	tail     *node[V]
+	list     *list[V]
 	capacity int64
 	size     int64
 }
@@ -45,81 +43,59 @@ func NewLRU[V comparable](capacity int64) (*LRU[V], error) {
 	return &LRU[V]{
 		capacity: capacity,
 		size:     0,
-		head:     head,
-		tail:     tail,
+		list:     &list[V]{head: head, tail: tail},
 		index:    make(map[string]*node[V]),
 	}, nil
 }
 
-func (c *LRU[V]) remove(n *node[V]) error {
-	if n == nil {
-		return ErrorRemoveNilNode
-	}
-
+func (l *list[V]) remove(n *node[V]) {
 	p := n.prev
 	q := n.next
 	p.next = q
 	q.prev = p
 	n.prev = nil
 	n.next = nil
-	return nil
 }
 
-func (c *LRU[V]) pushFront(n *node[V]) error {
-	if n == nil {
-		return ErrorPushNilNode
-	}
-
-	n.prev = c.head
-	n.next = c.head.next
-	c.head.next.prev = n
-	c.head.next = n
-	return nil
+func (l *list[V]) pushFront(n *node[V]) {
+	n.prev = l.head
+	n.next = l.head.next
+	l.head.next.prev = n
+	l.head.next = n
 }
 
-func (c *LRU[V]) popTail() (*node[V], error) {
-	if c.tail == nil || c.tail.prev == nil {
-		return nil, ErrorCacheStructureBroken
+func (l *list[V]) popTail() *node[V] {
+	lru := l.tail.prev
+	if lru == l.head {
+		return nil
 	}
 
-	lru := c.tail.prev
-	if lru == c.head {
-		return nil, ErrorCacheEmpty
-	}
-
-	if err := c.remove(lru); err != nil {
-		return nil, err
-	}
-	return lru, nil
+	l.remove(lru)
+	return lru
 }
 
-func (c *LRU[V]) moveToFront(n *node[V]) error {
-	if err := c.remove(n); err != nil {
-		return err
-	}
-	return c.pushFront(n)
+func (l *list[V]) moveToFront(n *node[V]) {
+	l.remove(n)
+	l.pushFront(n)
 }
 
-func (c *LRU[V]) Get(key string) (val V, err error) {
+func (c *LRU[V]) Get(key string) (val V, ok bool) {
 	if key == "" {
 		var zero V
-		return zero, ErrorEmptyKey
+		return zero, false
 	}
 
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	n, ok := c.index[key]
-	if !ok {
+	n, found := c.index[key]
+	if !found {
 		var zero V
-		return zero, ErrorKeyNotFound
+		return zero, false
 	}
 
-	if err := c.moveToFront(n); err != nil {
-		var zero V
-		return zero, err
-	}
-	return n.val, nil
+	c.list.moveToFront(n)
+	return n.val, true
 }
 
 func (c *LRU[V]) Put(key string, val V) error {
@@ -132,26 +108,18 @@ func (c *LRU[V]) Put(key string, val V) error {
 
 	if n, ok := c.index[key]; ok {
 		n.val = val
-		if err := c.moveToFront(n); err != nil {
-			return err
-		}
+		c.list.moveToFront(n)
 		return nil
 	}
 
 	n := &node[V]{key: key, val: val}
-	if err := c.pushFront(n); err != nil {
-		return err
-	}
+	c.list.pushFront(n)
 
 	c.index[key] = n
 	c.size++
 
 	if c.size > c.capacity {
-		lru, err := c.popTail()
-		if err != nil {
-			return err
-		}
-
+		lru := c.list.popTail()
 		if lru != nil {
 			delete(c.index, lru.key)
 			c.size--
@@ -160,9 +128,9 @@ func (c *LRU[V]) Put(key string, val V) error {
 	return nil
 }
 
-func (c *LRU[V]) Delete(key string) error {
+func (c *LRU[V]) Delete(key string) bool {
 	if key == "" {
-		return ErrorEmptyKey
+		return false
 	}
 
 	c.mu.Lock()
@@ -170,42 +138,34 @@ func (c *LRU[V]) Delete(key string) error {
 
 	n := c.index[key]
 	if n == nil {
-		return ErrorKeyNotFound
+		return false
 	}
 
-	if err := c.remove(n); err != nil {
-		return err
-	}
-
+	c.list.remove(n)
 	delete(c.index, key)
 	c.size--
-	return nil
+	return true
 }
 
-func (c *LRU[V]) Peek(key string) (val V, err error) {
+func (c *LRU[V]) Peek(key string) (val V, ok bool) {
 	if key == "" {
 		var zero V
-		return zero, ErrorEmptyKey
+		return zero, false
 	}
 
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
-	n, ok := c.index[key]
-	if !ok {
+	n, found := c.index[key]
+	if !found {
 		var zero V
-		return zero, ErrorKeyNotFound
+		return zero, false
 	}
-	return n.val, nil
+	return n.val, true
 }
 
-func (c *LRU[V]) Len() (int64, error) {
+func (c *LRU[V]) Len() int64 {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-
-	if c.size < 0 {
-		return 0, ErrorCacheSize
-	}
-
-	return c.size, nil
+	return c.size
 }

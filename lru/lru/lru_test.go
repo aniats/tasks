@@ -43,8 +43,8 @@ func TestNewLRU(t *testing.T) {
 			assert.NotNil(t, cache)
 			assert.Equal(t, tt.capacity, cache.capacity)
 			assert.Equal(t, int64(0), cache.size)
-			assert.Equal(t, cache.tail, cache.head.next)
-			assert.Equal(t, cache.head, cache.tail.prev)
+			assert.Equal(t, cache.list.tail, cache.list.head.next)
+			assert.Equal(t, cache.list.head, cache.list.tail.prev)
 		})
 	}
 }
@@ -52,26 +52,26 @@ func TestNewLRU(t *testing.T) {
 func TestLRU_Get(t *testing.T) {
 	cache, _ := NewLRU[string](2)
 
-	_, err := cache.Get("")
-	assert.ErrorIs(t, err, ErrorEmptyKey)
+	_, ok := cache.Get("")
+	assert.False(t, ok)
 
-	_, err = cache.Get("nonexistent")
-	assert.ErrorIs(t, err, ErrorKeyNotFound)
+	_, ok = cache.Get("nonexistent")
+	assert.False(t, ok)
 
 	cache.Put("key1", "value1")
 	cache.Put("key2", "value2")
 
-	val, err := cache.Get("key1")
-	assert.NoError(t, err)
+	val, ok := cache.Get("key1")
+	assert.True(t, ok)
 	assert.Equal(t, "value1", val)
 
 	cache.Put("key3", "value3")
 
-	_, err = cache.Get("key2")
-	assert.ErrorIs(t, err, ErrorKeyNotFound)
+	_, ok = cache.Get("key2")
+	assert.False(t, ok)
 
-	_, err = cache.Get("key1")
-	assert.NoError(t, err)
+	_, ok = cache.Get("key1")
+	assert.True(t, ok)
 }
 
 func TestLRU_Put(t *testing.T) {
@@ -86,8 +86,8 @@ func TestLRU_Put(t *testing.T) {
 	err = cache.Put("key1", "updated_value1")
 	assert.NoError(t, err)
 
-	val, err := cache.Get("key1")
-	assert.NoError(t, err)
+	val, ok := cache.Get("key1")
+	assert.True(t, ok)
 	assert.Equal(t, "updated_value1", val)
 
 	cache.Put("key2", "value2")
@@ -95,73 +95,71 @@ func TestLRU_Put(t *testing.T) {
 	err = cache.Put("key3", "value3")
 	assert.NoError(t, err)
 
-	val2, err := cache.Get("key2")
-	assert.NoError(t, err)
+	val2, ok := cache.Get("key2")
+	assert.True(t, ok)
 	assert.Equal(t, "value2", val2)
 
-	val3, err := cache.Get("key3")
-	assert.NoError(t, err)
+	val3, ok := cache.Get("key3")
+	assert.True(t, ok)
 	assert.Equal(t, "value3", val3)
 
-	_, err = cache.Get("key1")
-	assert.ErrorIs(t, err, ErrorKeyNotFound)
+	_, ok = cache.Get("key1")
+	assert.False(t, ok)
 }
 
 func TestLRU_Delete(t *testing.T) {
 	cache, _ := NewLRU[string](3)
 
-	err := cache.Delete("")
-	assert.ErrorIs(t, err, ErrorEmptyKey)
+	deleted := cache.Delete("")
+	assert.False(t, deleted)
 
-	err = cache.Delete("nonexistent")
-	assert.ErrorIs(t, err, ErrorKeyNotFound)
+	deleted = cache.Delete("nonexistent")
+	assert.False(t, deleted)
 
 	cache.Put("key1", "value1")
 	cache.Put("key2", "value2")
 
-	err = cache.Delete("key1")
-	assert.NoError(t, err)
+	deleted = cache.Delete("key1")
+	assert.True(t, deleted)
 
-	_, err = cache.Get("key1")
-	assert.ErrorIs(t, err, ErrorKeyNotFound)
+	_, ok := cache.Get("key1")
+	assert.False(t, ok)
 
-	size, _ := cache.Len()
+	size := cache.Len()
 	assert.Equal(t, int64(1), size)
 }
 
 func TestLRU_Peek(t *testing.T) {
 	cache, _ := NewLRU[string](2)
 
-	_, err := cache.Peek("")
-	assert.ErrorIs(t, err, ErrorEmptyKey)
+	_, ok := cache.Peek("")
+	assert.False(t, ok)
 
-	_, err = cache.Peek("nonexistent")
-	assert.ErrorIs(t, err, ErrorKeyNotFound)
+	_, ok = cache.Peek("nonexistent")
+	assert.False(t, ok)
 
 	cache.Put("key1", "value1")
 	cache.Put("key2", "value2")
 
-	val, err := cache.Peek("key1")
-	assert.NoError(t, err)
+	val, ok := cache.Peek("key1")
+	assert.True(t, ok)
 	assert.Equal(t, "value1", val)
 
 	cache.Put("key3", "value3")
 
-	_, err = cache.Peek("key1")
-	assert.ErrorIs(t, err, ErrorKeyNotFound)
+	_, ok = cache.Peek("key1")
+	assert.False(t, ok)
 }
 
 func TestLRU_Len(t *testing.T) {
 	cache, _ := NewLRU[string](3)
 
-	size, err := cache.Len()
-	assert.NoError(t, err)
+	size := cache.Len()
 	assert.Equal(t, int64(0), size)
 
 	cache.Put("key1", "value1")
 	cache.Put("key2", "value2")
 
-	size, err = cache.Len()
-	assert.NoError(t, err)
+	size = cache.Len()
 	assert.Equal(t, int64(2), size)
 }
