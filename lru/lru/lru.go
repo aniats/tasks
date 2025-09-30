@@ -2,6 +2,8 @@ package lru
 
 import (
 	"errors"
+	"lru/list"
+	"lru/node"
 	"sync"
 )
 
@@ -10,22 +12,10 @@ var (
 	ErrorEmptyKey     = errors.New("key cannot be empty")
 )
 
-type node[V comparable] struct {
-	key  string
-	val  V
-	prev *node[V]
-	next *node[V]
-}
-
-type list[V comparable] struct {
-	head *node[V]
-	tail *node[V]
-}
-
 type LRU[V comparable] struct {
 	mu       sync.RWMutex
-	index    map[string]*node[V]
-	list     *list[V]
+	index    map[string]*node.Node[V]
+	list     *list.List[V]
 	capacity int64
 	size     int64
 }
@@ -35,48 +25,12 @@ func NewLRU[V comparable](capacity int64) (*LRU[V], error) {
 		return nil, ErrorZeroCapacity
 	}
 
-	head := &node[V]{}
-	tail := &node[V]{}
-	head.next = tail
-	tail.prev = head
-
 	return &LRU[V]{
 		capacity: capacity,
 		size:     0,
-		list:     &list[V]{head: head, tail: tail},
-		index:    make(map[string]*node[V]),
+		list:     list.New[V](),
+		index:    make(map[string]*node.Node[V]),
 	}, nil
-}
-
-func (l *list[V]) remove(n *node[V]) {
-	p := n.prev
-	q := n.next
-	p.next = q
-	q.prev = p
-	n.prev = nil
-	n.next = nil
-}
-
-func (l *list[V]) pushFront(n *node[V]) {
-	n.prev = l.head
-	n.next = l.head.next
-	l.head.next.prev = n
-	l.head.next = n
-}
-
-func (l *list[V]) popTail() *node[V] {
-	lru := l.tail.prev
-	if lru == l.head {
-		return nil
-	}
-
-	l.remove(lru)
-	return lru
-}
-
-func (l *list[V]) moveToFront(n *node[V]) {
-	l.remove(n)
-	l.pushFront(n)
 }
 
 func (c *LRU[V]) Get(key string) (val V, ok bool) {
@@ -94,8 +48,8 @@ func (c *LRU[V]) Get(key string) (val V, ok bool) {
 		return zero, false
 	}
 
-	c.list.moveToFront(n)
-	return n.val, true
+	c.list.MoveToFront(n)
+	return n.Val, true
 }
 
 func (c *LRU[V]) Put(key string, val V) error {
@@ -107,21 +61,21 @@ func (c *LRU[V]) Put(key string, val V) error {
 	defer c.mu.Unlock()
 
 	if n, ok := c.index[key]; ok {
-		n.val = val
-		c.list.moveToFront(n)
+		n.Val = val
+		c.list.MoveToFront(n)
 		return nil
 	}
 
-	n := &node[V]{key: key, val: val}
-	c.list.pushFront(n)
+	n := node.New(key, val)
+	c.list.PushFront(n)
 
 	c.index[key] = n
 	c.size++
 
 	if c.size > c.capacity {
-		lru := c.list.popTail()
+		lru := c.list.PopTail()
 		if lru != nil {
-			delete(c.index, lru.key)
+			delete(c.index, lru.Key)
 			c.size--
 		}
 	}
@@ -141,7 +95,7 @@ func (c *LRU[V]) Delete(key string) bool {
 		return false
 	}
 
-	c.list.remove(n)
+	c.list.Remove(n)
 	delete(c.index, key)
 	c.size--
 	return true
@@ -161,7 +115,7 @@ func (c *LRU[V]) Peek(key string) (val V, ok bool) {
 		var zero V
 		return zero, false
 	}
-	return n.val, true
+	return n.Val, true
 }
 
 func (c *LRU[V]) Len() int64 {

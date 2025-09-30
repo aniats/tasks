@@ -15,22 +15,21 @@ func main() {
 	cache.Put("a", 1)
 	cache.Put("b", 2)
 
-	if v, err := cache.Get("a"); err == nil {
+	if v, ok := cache.Get("a"); ok {
 		fmt.Printf("a = %v\n", v)
 	}
 
 	cache.Put("c", 3)
 
-	if v, err := cache.Get("c"); err == nil {
+	if v, ok := cache.Get("c"); ok {
 		fmt.Printf("c = %v\n", v)
 	}
 
 	cache.Put("a", 100)
-	if v, err := cache.Get("a"); err == nil {
+	if v, ok := cache.Get("a"); ok {
 		fmt.Printf("a = %v (updated)\n", v)
 	}
 
-	if size, err := cache.Len(); err == nil {
-		fmt.Printf("cache size: %d\n", size)
-	}
+	size := cache.Len()
+	fmt.Printf("cache size: %d\n", size)
 }
