@@ -19,10 +19,7 @@ func main() {
 		fmt.Printf("a = %v\n", v)
 	}
 
-	evictedKey, evictedVal, evicted, _ := cache.Put("c", 3)
-	if evicted {
-		fmt.Printf("evicted: %s = %v\n", evictedKey, evictedVal)
-	}
+	cache.Put("c", 3)
 
 	if v, err := cache.Get("c"); err == nil {
 		fmt.Printf("c = %v\n", v)

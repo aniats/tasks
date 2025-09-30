@@ -122,10 +122,9 @@ func (c *LRU[V]) Get(key string) (val V, err error) {
 	return n.val, nil
 }
 
-func (c *LRU[V]) Put(key string, val V) (evictedKey string, evictedVal V, evicted bool, err error) {
+func (c *LRU[V]) Put(key string, val V) error {
 	if key == "" {
-		var zero V
-		return "", zero, false, ErrorEmptyKey
+		return ErrorEmptyKey
 	}
 
 	c.mu.Lock()
@@ -134,17 +133,14 @@ func (c *LRU[V]) Put(key string, val V) (evictedKey string, evictedVal V, evicte
 	if n, ok := c.index[key]; ok {
 		n.val = val
 		if err := c.moveToFront(n); err != nil {
-			var zero V
-			return "", zero, false, err
+			return err
 		}
-		var zero V
-		return "", zero, false, nil
+		return nil
 	}
 
 	n := &node[V]{key: key, val: val}
 	if err := c.pushFront(n); err != nil {
-		var zero V
-		return "", zero, false, err
+		return err
 	}
 
 	c.index[key] = n
@@ -153,18 +149,15 @@ func (c *LRU[V]) Put(key string, val V) (evictedKey string, evictedVal V, evicte
 	if c.size > c.capacity {
 		lru, err := c.popTail()
 		if err != nil {
-			var zero V
-			return "", zero, false, err
+			return err
 		}
 
 		if lru != nil {
 			delete(c.index, lru.key)
 			c.size--
-			return lru.key, lru.val, true, nil
 		}
 	}
-	var zero V
-	return "", zero, false, nil
+	return nil
 }
 
 func (c *LRU[V]) Delete(key string) error {

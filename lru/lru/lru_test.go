@@ -77,16 +77,14 @@ func TestLRU_Get(t *testing.T) {
 func TestLRU_Put(t *testing.T) {
 	cache, _ := NewLRU[string](2)
 
-	_, _, _, err := cache.Put("", "value")
+	err := cache.Put("", "value")
 	assert.ErrorIs(t, err, ErrorEmptyKey)
 
-	evictedKey, evictedVal, evicted, err := cache.Put("key1", "value1")
+	err = cache.Put("key1", "value1")
 	assert.NoError(t, err)
-	assert.False(t, evicted)
 
-	evictedKey, evictedVal, evicted, err = cache.Put("key1", "updated_value1")
+	err = cache.Put("key1", "updated_value1")
 	assert.NoError(t, err)
-	assert.False(t, evicted)
 
 	val, err := cache.Get("key1")
 	assert.NoError(t, err)
@@ -94,11 +92,8 @@ func TestLRU_Put(t *testing.T) {
 
 	cache.Put("key2", "value2")
 
-	evictedKey, evictedVal, evicted, err = cache.Put("key3", "value3")
+	err = cache.Put("key3", "value3")
 	assert.NoError(t, err)
-	assert.True(t, evicted)
-	assert.Equal(t, "key1", evictedKey)
-	assert.Equal(t, "updated_value1", evictedVal)
 
 	val2, err := cache.Get("key2")
 	assert.NoError(t, err)
