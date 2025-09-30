@@ -49,11 +49,11 @@ func TestNewLRU(t *testing.T) {
 
 func TestLRU_Get(t *testing.T) {
 	tests := []struct {
-		name     string
-		setup    func() *LRU[string]
-		key      string
-		wantVal  string
-		wantOk   bool
+		name    string
+		setup   func() *LRU[string]
+		key     string
+		wantVal string
+		wantOk  bool
 	}{
 		{
 			name: "get from empty cache",
@@ -93,7 +93,7 @@ func TestLRU_Get(t *testing.T) {
 				cache, _ := NewLRU[string](2)
 				cache.Put("key1", "value1")
 				cache.Put("key2", "value2")
-				cache.Put("key3", "value3") // should evict key1
+				cache.Put("key3", "value3")
 				return cache
 			},
 			key:     "key1",
@@ -106,8 +106,8 @@ func TestLRU_Get(t *testing.T) {
 				cache, _ := NewLRU[string](2)
 				cache.Put("key1", "value1")
 				cache.Put("key2", "value2")
-				cache.Get("key1") // moves key1 to front
-				cache.Put("key3", "value3") // should evict key2
+				cache.Get("key1")
+				cache.Put("key3", "value3")
 				return cache
 			},
 			key:     "key1",
@@ -193,7 +193,6 @@ func TestLRU_Put(t *testing.T) {
 			val:     "value3",
 			wantErr: nil,
 			check: func(t *testing.T, cache *LRU[string]) {
-				// key1 should be evicted
 				_, ok := cache.Get("key1")
 				assert.False(t, ok)
 
@@ -349,15 +348,14 @@ func TestLRU_Peek(t *testing.T) {
 				cache, _ := NewLRU[string](2)
 				cache.Put("key1", "value1")
 				cache.Put("key2", "value2")
-				cache.Peek("key1") // should not move key1 to front
-				cache.Put("key3", "value3") // should still evict key1
+				cache.Peek("key1")
+				cache.Put("key3", "value3")
 				return cache
 			},
 			key:     "key1",
 			wantVal: "",
 			wantOk:  false,
 			check: func(t *testing.T, cache *LRU[string]) {
-				// Verify key1 was evicted and key2, key3 remain
 				_, ok := cache.Get("key2")
 				assert.True(t, ok)
 				_, ok = cache.Get("key3")
@@ -417,7 +415,7 @@ func TestLRU_Len(t *testing.T) {
 				cache, _ := NewLRU[string](2)
 				cache.Put("key1", "value1")
 				cache.Put("key2", "value2")
-				cache.Put("key3", "value3") // evicts key1
+				cache.Put("key3", "value3")
 				return cache
 			},
 			wantSize: 2,

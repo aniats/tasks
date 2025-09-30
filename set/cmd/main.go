@@ -6,15 +6,8 @@ import (
 )
 
 func main() {
-	setA, err := set.NewSet()
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	setB, err := set.NewSet()
-	if err != nil {
-		fmt.Println(err)
-	}
+	setA := set.NewSet[int]()
+	setB := set.NewSet[int]()
 
 	setA.Add(1)
 	setA.Add(2)

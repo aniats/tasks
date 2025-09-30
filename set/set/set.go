@@ -3,22 +3,20 @@ package set
 import "errors"
 
 var (
-	ErrElementNotFound = errors.New("element not found in set")
-	ErrNilSet          = errors.New("set is nil")
-	ErrEmptySet        = errors.New("set is empty")
+	ErrNilSet = errors.New("set is nil")
 )
 
-type Set struct {
-	elements map[interface{}]struct{}
+type Set[T comparable] struct {
+	elements map[T]struct{}
 }
 
-func NewSet() (*Set, error) {
-	return &Set{
-		elements: make(map[interface{}]struct{}),
-	}, nil
+func NewSet[T comparable]() *Set[T] {
+	return &Set[T]{
+		elements: make(map[T]struct{}),
+	}
 }
 
-func (s *Set) Add(element interface{}) error {
+func (s *Set[T]) Add(element T) error {
 	if s == nil {
 		return ErrNilSet
 	}
@@ -27,24 +25,17 @@ func (s *Set) Add(element interface{}) error {
 	return nil
 }
 
-func (s *Set) Remove(element interface{}) error {
+func (s *Set[T]) Remove(element T) error {
 	if s == nil {
 		return ErrNilSet
-	}
-	if s.elements == nil {
-		return ErrEmptySet
-	}
-
-	if !s.Contains(element) {
-		return ErrElementNotFound
 	}
 
 	delete(s.elements, element)
 	return nil
 }
 
-func (s *Set) Contains(element interface{}) bool {
-	if s == nil || s.elements == nil {
+func (s *Set[T]) Contains(element T) bool {
+	if s == nil {
 		return false
 	}
 
@@ -52,47 +43,36 @@ func (s *Set) Contains(element interface{}) bool {
 	return exists
 }
 
-func (s *Set) Size() (int, error) {
+func (s *Set[T]) Size() (int, error) {
 	if s == nil {
 		return 0, ErrNilSet
-	}
-	if s.elements == nil {
-		return 0, nil
 	}
 
 	return len(s.elements), nil
 }
 
-func (s *Set) IsEmpty() (bool, error) {
+func (s *Set[T]) IsEmpty() (bool, error) {
 	if s == nil {
 		return true, ErrNilSet
-	}
-	if s.elements == nil {
-		return true, nil
 	}
 
 	return len(s.elements) == 0, nil
 }
 
-func (s *Set) Union(other *Set) (*Set, error) {
-	if s == nil || other == nil {
+func (s *Set[T]) Union(other *Set[T]) (*Set[T], error) {
+	if s == nil {
 		return nil, ErrNilSet
 	}
 
-	result, err := NewSet()
-	if err != nil {
-		return nil, err
-	}
+	result := NewSet[T]()
 
-	if s.elements != nil {
-		for element := range s.elements {
-			if err := result.Add(element); err != nil {
-				return nil, err
-			}
+	for element := range s.elements {
+		if err := result.Add(element); err != nil {
+			return nil, err
 		}
 	}
 
-	if other.elements != nil {
+	if other != nil {
 		for element := range other.elements {
 			if err := result.Add(element); err != nil {
 				return nil, err
@@ -103,17 +83,14 @@ func (s *Set) Union(other *Set) (*Set, error) {
 	return result, nil
 }
 
-func (s *Set) Intersection(other *Set) (*Set, error) {
-	if s == nil || other == nil {
+func (s *Set[T]) Intersection(other *Set[T]) (*Set[T], error) {
+	if s == nil {
 		return nil, ErrNilSet
 	}
 
-	result, err := NewSet()
-	if err != nil {
-		return nil, err
-	}
+	result := NewSet[T]()
 
-	if s.elements == nil || other.elements == nil {
+	if other == nil {
 		return result, nil
 	}
 
@@ -133,20 +110,19 @@ func (s *Set) Intersection(other *Set) (*Set, error) {
 	return result, nil
 }
 
-func (s *Set) Difference(other *Set) (*Set, error) {
+func (s *Set[T]) Difference(other *Set[T]) (*Set[T], error) {
 	if s == nil {
 		return nil, ErrNilSet
 	}
+
+	result := NewSet[T]()
+
 	if other == nil {
-		return nil, ErrNilSet
-	}
-
-	result, err := NewSet()
-	if err != nil {
-		return nil, err
-	}
-
-	if s.elements == nil {
+		for element := range s.elements {
+			if err := result.Add(element); err != nil {
+				return nil, err
+			}
+		}
 		return result, nil
 	}
 
@@ -161,41 +137,32 @@ func (s *Set) Difference(other *Set) (*Set, error) {
 	return result, nil
 }
 
-func (s *Set) Equals(other *Set) (bool, error) {
-	if s == nil || other == nil {
+func (s *Set[T]) Equals(other *Set[T]) (bool, error) {
+	if s == nil {
 		return false, ErrNilSet
 	}
-
-	sSize, err := s.Size()
-	if err != nil {
-		return false, err
+	if other == nil {
+		return len(s.elements) == 0, nil
 	}
 
-	otherSize, err := other.Size()
-	if err != nil {
-		return false, err
-	}
-
-	if sSize != otherSize {
+	if len(s.elements) != len(other.elements) {
 		return false, nil
 	}
 
-	if s.elements != nil {
-		for element := range s.elements {
-			if !other.Contains(element) {
-				return false, nil
-			}
+	for element := range s.elements {
+		if !other.Contains(element) {
+			return false, nil
 		}
 	}
 
 	return true, nil
 }
 
-func (s *Set) Clear() error {
+func (s *Set[T]) Clear() error {
 	if s == nil {
 		return ErrNilSet
 	}
 
-	s.elements = make(map[interface{}]struct{})
+	s.elements = make(map[T]struct{})
 	return nil
 }
