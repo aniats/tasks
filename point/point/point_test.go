@@ -342,7 +342,7 @@ func TestParsePoints(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			result, err := parsePoints(tt.input)
+			result, err := ParsePoints(tt.input)
 
 			if tt.shouldErr {
 				assert.Error(t, err)

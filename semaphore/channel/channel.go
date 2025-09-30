@@ -34,12 +34,10 @@ func (s *ChannelSemaphore) TryAcquire(permits int64) bool {
 
 func (s *ChannelSemaphore) Release(permits int64) {
 	for i := int64(0); i < permits; i++ {
-		for i := int64(0); i < permits; i++ {
-			select {
-			case <-s.ch:
-			default:
-				return
-			}
+		select {
+		case <-s.ch:
+		default:
+			return
 		}
 	}
 }

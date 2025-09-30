@@ -12,10 +12,10 @@ type Semaphore interface {
 }
 
 type MutexSemaphore struct {
-	mu         *sync.Mutex // Защищает доступ к permits
-	cond       *sync.Cond  // Для пробуждения ожидающих горутин
-	permits    int64       // Сколько разрешений доступно СЕЙЧАС
-	maxPermits int64       // Максимальное количество разрешений
+	mu         *sync.Mutex
+	cond       *sync.Cond
+	permits    int64
+	maxPermits int64
 }
 
 func NewMutexSemaphore(capacity int64) *MutexSemaphore {
@@ -24,7 +24,7 @@ func NewMutexSemaphore(capacity int64) *MutexSemaphore {
 		maxPermits: capacity,
 		mu:         &sync.Mutex{},
 	}
-	s.cond = sync.NewCond(s.mu) // Привязываем condition variable к мьютексу
+	s.cond = sync.NewCond(s.mu)
 	return s
 }
 
