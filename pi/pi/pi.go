@@ -2,24 +2,31 @@ package pi
 
 import (
 	"fmt"
-	"os"
-	"os/signal"
 	"sync"
-	"syscall"
 )
 
-type Result struct {
-	Sum float64
+// CalculateLeibnizTerm calculates a single term in the Leibniz series for π/4
+// π/4 = 1 - 1/3 + 1/5 - 1/7 + 1/9 - ...
+// Formula: (-1)^n / (2*n + 1)
+func CalculateLeibnizTerm(n int) float64 {
+	denominator := 2*n + 1
+	term := 1.0 / float64(denominator)
+
+	if n%2 == 1 {
+		term = -term
+	}
+
+	return term
 }
 
 type Calculator struct {
 	numWorkers int
 	stopChan   chan struct{}
-	results    chan Result
+	results    chan float64
 	wg         *sync.WaitGroup
 }
 
-func NewCalculator(numWorkers int) (*Calculator, error) {
+func New(numWorkers int) (*Calculator, error) {
 	if numWorkers <= 0 {
 		return nil, fmt.Errorf("number of workers must be positive, got %d", numWorkers)
 	}
@@ -27,7 +34,7 @@ func NewCalculator(numWorkers int) (*Calculator, error) {
 	return &Calculator{
 		numWorkers: numWorkers,
 		stopChan:   make(chan struct{}),
-		results:    make(chan Result, numWorkers),
+		results:    make(chan float64, numWorkers),
 		wg:         &sync.WaitGroup{},
 	}, nil
 }
@@ -39,22 +46,14 @@ func (c *Calculator) worker(id int) {
 
 	fmt.Printf("Worker %d has started\n", id)
 
-	for n := int64(id); ; n += int64(c.numWorkers) {
+	for n := id; ; n += c.numWorkers {
 		select {
 		case <-c.stopChan:
 			fmt.Printf("Worker %d has received stop signal\n", id)
-			c.results <- Result{Sum: sum}
+			c.results <- sum
 			return
 		default:
-			// π/4 = 1 - 1/3 + 1/5 - 1/7 + 1/9 - ...
-			// Formula: (-1)^n / (2*n + 1)
-			denominator := 2*n + 1
-			term := 1.0 / float64(denominator)
-
-			if n%2 == 1 {
-				term = -term
-			}
-
+			term := CalculateLeibnizTerm(n)
 			sum += term
 		}
 	}
@@ -66,19 +65,14 @@ func (c *Calculator) Start() {
 		go c.worker(i)
 	}
 
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-
-	go func() {
-		<-sigChan
-		fmt.Println("\nStop signal received")
-		close(c.stopChan)
-	}()
-
 	go func() {
 		c.wg.Wait()
 		close(c.results)
 	}()
+}
+
+func (c *Calculator) Stop() {
+	close(c.stopChan)
 }
 
 func (c *Calculator) Calculate() float64 {
@@ -86,7 +80,7 @@ func (c *Calculator) Calculate() float64 {
 
 	var totalSum float64
 	for result := range c.results {
-		totalSum += result.Sum
+		totalSum += result
 	}
 
 	return totalSum * 4

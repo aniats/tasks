@@ -4,16 +4,34 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"os"
+	"os/signal"
 	"pi/pi"
+	"syscall"
 )
 
 func Calculate(numWorkers int) (float64, error) {
-	calc, err := pi.NewCalculator(numWorkers)
+	calc, err := pi.New(numWorkers)
 	if err != nil {
 		return 0, err
 	}
 
-	return calc.Calculate(), nil
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+
+	resultChan := make(chan float64)
+	go func() {
+		result := calc.Calculate()
+		resultChan <- result
+	}()
+	
+	go func() {
+		<-sigChan
+		fmt.Println("\nStop signal received")
+		calc.Stop()
+	}()
+
+	return <-resultChan, nil
 }
 
 func main() {
