@@ -4,7 +4,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewPoint(t *testing.T) {
@@ -29,16 +29,16 @@ func TestNewPoint(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			point, err := NewPoint(tt.lat, tt.lng)
+			point, err := New(tt.lat, tt.lng)
 
 			if tt.shouldErr {
-				assert.Error(t, err)
+				require.Error(t, err)
 				return
 			}
 
-			assert.NoError(t, err)
-			assert.Equal(t, tt.lat, point.Latitude)
-			assert.Equal(t, tt.lng, point.Longitude)
+			require.NoError(t, err)
+			require.Equal(t, tt.lat, point.Latitude)
+			require.Equal(t, tt.lng, point.Longitude)
 		})
 	}
 }
@@ -68,9 +68,9 @@ func TestValidateCoordinates(t *testing.T) {
 			err := validateCoordinates(tt.lat, tt.lng)
 
 			if tt.shouldErr {
-				assert.Error(t, err)
+				require.Error(t, err)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
 		})
 	}
@@ -106,12 +106,12 @@ func TestPointString(t *testing.T) {
 			t.Parallel()
 
 			result := tt.point.String()
-			assert.Equal(t, tt.expected, result)
+			require.Equal(t, tt.expected, result)
 		})
 	}
 }
 
-func TestDistanceTo(t *testing.T) {
+func TestHaversineDistanceDetailed(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -155,11 +155,11 @@ func TestDistanceTo(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			distance := tt.p1.DistanceTo(tt.p2)
-			assert.InDelta(t, tt.expected, distance, tt.tolerance)
+			distance := HaversineDistance(tt.p1, tt.p2)
+			require.InDelta(t, tt.expected, distance, tt.tolerance)
 
-			reverseDistance := tt.p2.DistanceTo(tt.p1)
-			assert.InDelta(t, distance, reverseDistance, 0.001)
+			reverseDistance := HaversineDistance(tt.p2, tt.p1)
+			require.InDelta(t, distance, reverseDistance, 0.001)
 		})
 	}
 }
@@ -197,7 +197,7 @@ func TestIsWithinRadius(t *testing.T) {
 			t.Parallel()
 
 			result := tt.point.IsWithinRadius(tt.center, tt.radius)
-			assert.Equal(t, tt.expected, result)
+			require.Equal(t, tt.expected, result)
 		})
 	}
 }
@@ -226,8 +226,8 @@ func TestHaversineDistance(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			distance := haversineDistance(tt.p1, tt.p2)
-			assert.InDelta(t, tt.expected, distance, tt.tolerance)
+			distance := HaversineDistance(tt.p1, tt.p2)
+			require.InDelta(t, tt.expected, distance, tt.tolerance)
 		})
 	}
 }
@@ -253,7 +253,7 @@ func TestToRadians(t *testing.T) {
 			t.Parallel()
 
 			result := toRadians(tt.degrees)
-			assert.InDelta(t, tt.expected, result, 0.000001)
+			require.InDelta(t, tt.expected, result, 0.000001)
 		})
 	}
 }
@@ -264,35 +264,35 @@ func TestParsePoint(t *testing.T) {
 	tests := []struct {
 		name      string
 		input     string
-		expected  *Point
+		expected  Point
 		shouldErr bool
 	}{
-		{"Valid point", "55.7558,37.6176", &Point{Latitude: 55.7558, Longitude: 37.6176}, false},
-		{"Valid with spaces", " 55.7558 , 37.6176 ", &Point{Latitude: 55.7558, Longitude: 37.6176}, false},
-		{"Invalid format missing comma", "55.7558 37.6176", nil, true},
-		{"Invalid format too many parts", "55.7558,37.6176,10", nil, true},
-		{"Invalid latitude", "invalid,37.6176", nil, true},
-		{"Invalid longitude", "55.7558,invalid", nil, true},
-		{"Out of range latitude", "91.0,37.6176", nil, true},
-		{"Out of range longitude", "55.7558,181.0", nil, true},
-		{"Example coordinates", "2,0", &Point{Latitude: 2, Longitude: 0}, false},
-		{"Example coordinates 2", "0,0", &Point{Latitude: 0, Longitude: 0}, false},
+		{"Valid point", "55.7558,37.6176", Point{Latitude: 55.7558, Longitude: 37.6176}, false},
+		{"Valid with spaces", " 55.7558 , 37.6176 ", Point{Latitude: 55.7558, Longitude: 37.6176}, false},
+		{"Invalid format missing comma", "55.7558 37.6176", Point{}, true},
+		{"Invalid format too many parts", "55.7558,37.6176,10", Point{}, true},
+		{"Invalid latitude", "invalid,37.6176", Point{}, true},
+		{"Invalid longitude", "55.7558,invalid", Point{}, true},
+		{"Out of range latitude", "91.0,37.6176", Point{}, true},
+		{"Out of range longitude", "55.7558,181.0", Point{}, true},
+		{"Example coordinates", "2,0", Point{Latitude: 2, Longitude: 0}, false},
+		{"Example coordinates 2", "0,0", Point{Latitude: 0, Longitude: 0}, false},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			result, err := parsePoint(tt.input)
+			result, err := ParsePoint(tt.input)
 
 			if tt.shouldErr {
-				assert.Error(t, err)
+				require.Error(t, err)
 				return
 			}
 
-			assert.NoError(t, err)
-			assert.Equal(t, tt.expected.Latitude, result.Latitude)
-			assert.Equal(t, tt.expected.Longitude, result.Longitude)
+			require.NoError(t, err)
+			require.Equal(t, tt.expected.Latitude, result.Latitude)
+			require.Equal(t, tt.expected.Longitude, result.Longitude)
 		})
 	}
 }
@@ -345,12 +345,12 @@ func TestParsePoints(t *testing.T) {
 			result, err := ParsePoints(tt.input)
 
 			if tt.shouldErr {
-				assert.Error(t, err)
+				require.Error(t, err)
 				return
 			}
 
-			assert.NoError(t, err)
-			assert.Len(t, result, tt.expected)
+			require.NoError(t, err)
+			require.Len(t, result, tt.expected)
 		})
 	}
 }

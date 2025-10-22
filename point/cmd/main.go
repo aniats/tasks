@@ -72,12 +72,48 @@ func main() {
 	}
 
 	if distance {
-		point.PrintDistances(points)
+		printDistances(points)
 	}
 
 	if radius > 0 && centerPoint != "" {
-		if err := point.PrintRadiusCheck(points, centerPoint, radius); err != nil {
+		if err := printRadiusCheck(points, centerPoint, radius); err != nil {
 			log.Fatalf("Error: %v", err)
 		}
 	}
+}
+
+func printDistances(points []point.Point) {
+	fmt.Printf("\nDistances between points:\n")
+
+	if len(points) < 2 {
+		fmt.Printf("Need at least 2 points to calculate distance\n")
+		return
+	}
+
+	for i := 0; i < len(points); i++ {
+		for j := i + 1; j < len(points); j++ {
+			dist := point.HaversineDistance(points[i], points[j])
+			fmt.Printf("  %s to %s: %.2f km\n",
+				points[i], points[j], dist)
+		}
+	}
+}
+
+func printRadiusCheck(points []point.Point, centerPointStr string, radius float64) error {
+	center, err := point.ParsePoint(centerPointStr)
+	if err != nil {
+		return fmt.Errorf("error parsing center point %s: %w", centerPointStr, err)
+	}
+
+	fmt.Printf("\nRadius check (center: %s, radius: %.2f km):\n",
+		center, radius)
+
+	for i, pt := range points {
+		within := pt.IsWithinRadius(center, radius)
+		distance := point.HaversineDistance(pt, center)
+		fmt.Printf("  Point %d: %s - Distance: %.2f km, Within radius: %v\n",
+			i+1, pt, distance, within)
+	}
+
+	return nil
 }

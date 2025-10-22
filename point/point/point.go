@@ -14,11 +14,11 @@ type Point struct {
 	Latitude  float64
 }
 
-func NewPoint(latitude, longitude float64) (*Point, error) {
+func New(latitude, longitude float64) (Point, error) {
 	if err := validateCoordinates(latitude, longitude); err != nil {
-		return nil, err
+		return Point{}, err
 	}
-	return &Point{
+	return Point{
 		Latitude:  latitude,
 		Longitude: longitude,
 	}, nil
@@ -38,18 +38,14 @@ func (p Point) String() string {
 	return fmt.Sprintf("Point(lat=%.6f, lng=%.6f)", p.Latitude, p.Longitude)
 }
 
-func (p Point) DistanceTo(other Point) float64 {
-	return haversineDistance(p, other)
-}
-
 func (p Point) IsWithinRadius(center Point, radiusKm float64) bool {
 	if radiusKm < 0 {
 		return false
 	}
-	return p.DistanceTo(center) <= radiusKm
+	return HaversineDistance(p, center) <= radiusKm
 }
 
-func haversineDistance(p1, p2 Point) float64 {
+func HaversineDistance(p1, p2 Point) float64 {
 	lat1Rad := toRadians(p1.Latitude)
 	lat2Rad := toRadians(p2.Latitude)
 	deltaLatRad := toRadians(p2.Latitude - p1.Latitude)
@@ -66,69 +62,33 @@ func toRadians(degrees float64) float64 {
 	return degrees * math.Pi / 180
 }
 
-func parsePoint(s string) (*Point, error) {
+func ParsePoint(s string) (Point, error) {
 	parts := strings.Split(s, ",")
 	if len(parts) != 2 {
-		return nil, fmt.Errorf("invalid point format: %s, expected lat,lng", s)
+		return Point{}, fmt.Errorf("invalid point format: %s, expected lat,lng", s)
 	}
 
 	lat, err := strconv.ParseFloat(strings.TrimSpace(parts[0]), 64)
 	if err != nil {
-		return nil, fmt.Errorf("invalid latitude: %s", parts[0])
+		return Point{}, fmt.Errorf("invalid latitude: %s", parts[0])
 	}
 
 	lng, err := strconv.ParseFloat(strings.TrimSpace(parts[1]), 64)
 	if err != nil {
-		return nil, fmt.Errorf("invalid longitude: %s", parts[1])
+		return Point{}, fmt.Errorf("invalid longitude: %s", parts[1])
 	}
 
-	return NewPoint(lat, lng)
+	return New(lat, lng)
 }
 
-func ParsePoints(pointStrings []string) ([]*Point, error) {
-	var points []*Point
+func ParsePoints(pointStrings []string) ([]Point, error) {
+	points := make([]Point, 0, len(pointStrings))
 	for _, pointStr := range pointStrings {
-		point, err := parsePoint(pointStr)
+		point, err := ParsePoint(pointStr)
 		if err != nil {
 			return nil, fmt.Errorf("error parsing point %s: %w", pointStr, err)
 		}
 		points = append(points, point)
 	}
 	return points, nil
-}
-
-func PrintDistances(points []*Point) {
-	fmt.Printf("\nDistances between points:\n")
-
-	if len(points) < 2 {
-		fmt.Printf("Need at least 2 points to calculate distance\n")
-		return
-	}
-
-	for i := 0; i < len(points); i++ {
-		for j := i + 1; j < len(points); j++ {
-			dist := points[i].DistanceTo(*points[j])
-			fmt.Printf("  %s to %s: %.2f km\n",
-				points[i], points[j], dist)
-		}
-	}
-}
-
-func PrintRadiusCheck(points []*Point, centerPointStr string, radius float64) error {
-	center, err := parsePoint(centerPointStr)
-	if err != nil {
-		return fmt.Errorf("error parsing center point %s: %w", centerPointStr, err)
-	}
-
-	fmt.Printf("\nRadius check (center: %s, radius: %.2f km):\n",
-		center, radius)
-
-	for i, point := range points {
-		within := point.IsWithinRadius(*center, radius)
-		distance := point.DistanceTo(*center)
-		fmt.Printf("  Point %d: %s - Distance: %.2f km, Within radius: %v\n",
-			i+1, point, distance, within)
-	}
-
-	return nil
 }
