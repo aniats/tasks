@@ -66,7 +66,7 @@ func TestLRU_Get(t *testing.T) {
 			wantOk:  false,
 		},
 		{
-			name: "get with empty key",
+			name: "get with empty key from empty cache",
 			setup: func() *LRU[string] {
 				cache, _ := NewLRU[string](2)
 				return cache
@@ -74,6 +74,17 @@ func TestLRU_Get(t *testing.T) {
 			key:     "",
 			wantVal: "",
 			wantOk:  false,
+		},
+		{
+			name: "get with empty key that exists",
+			setup: func() *LRU[string] {
+				cache, _ := NewLRU[string](2)
+				cache.Put("", "empty_key_value")
+				return cache
+			},
+			key:     "",
+			wantVal: "empty_key_value",
+			wantOk:  true,
 		},
 		{
 			name: "get existing key",
@@ -142,10 +153,30 @@ func TestLRU_Put(t *testing.T) {
 				return cache
 			},
 			key:     "",
-			val:     "value",
-			wantErr: ErrorEmptyKey,
+			val:     "empty_key_value",
+			wantErr: nil,
 			check: func(t *testing.T, cache *LRU[string]) {
-				assert.Equal(t, int64(0), cache.Len())
+				val, ok := cache.Get("")
+				assert.True(t, ok)
+				assert.Equal(t, "empty_key_value", val)
+				assert.Equal(t, int64(1), cache.Len())
+			},
+		},
+		{
+			name: "update existing empty key",
+			setup: func() *LRU[string] {
+				cache, _ := NewLRU[string](2)
+				cache.Put("", "original_value")
+				return cache
+			},
+			key:     "",
+			val:     "updated_value",
+			wantErr: nil,
+			check: func(t *testing.T, cache *LRU[string]) {
+				val, ok := cache.Get("")
+				assert.True(t, ok)
+				assert.Equal(t, "updated_value", val)
+				assert.Equal(t, int64(1), cache.Len())
 			},
 		},
 		{
@@ -207,6 +238,32 @@ func TestLRU_Put(t *testing.T) {
 				assert.Equal(t, int64(2), cache.Len())
 			},
 		},
+		{
+			name: "put empty key beyond capacity",
+			setup: func() *LRU[string] {
+				cache, _ := NewLRU[string](2)
+				cache.Put("key1", "value1")
+				cache.Put("key2", "value2")
+				return cache
+			},
+			key:     "",
+			val:     "empty_key_value",
+			wantErr: nil,
+			check: func(t *testing.T, cache *LRU[string]) {
+				_, ok := cache.Get("key1")
+				assert.False(t, ok)
+
+				val2, ok := cache.Get("key2")
+				assert.True(t, ok)
+				assert.Equal(t, "value2", val2)
+
+				emptyVal, ok := cache.Get("")
+				assert.True(t, ok)
+				assert.Equal(t, "empty_key_value", emptyVal)
+
+				assert.Equal(t, int64(2), cache.Len())
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -234,7 +291,7 @@ func TestLRU_Delete(t *testing.T) {
 		check  func(t *testing.T, cache *LRU[string])
 	}{
 		{
-			name: "delete with empty key",
+			name: "delete with empty key from empty cache",
 			setup: func() *LRU[string] {
 				cache, _ := NewLRU[string](3)
 				return cache
@@ -243,6 +300,22 @@ func TestLRU_Delete(t *testing.T) {
 			wantOk: false,
 			check: func(t *testing.T, cache *LRU[string]) {
 				assert.Equal(t, int64(0), cache.Len())
+			},
+		},
+		{
+			name: "delete existing empty key",
+			setup: func() *LRU[string] {
+				cache, _ := NewLRU[string](3)
+				cache.Put("", "empty_key_value")
+				cache.Put("key1", "value1")
+				return cache
+			},
+			key:    "",
+			wantOk: true,
+			check: func(t *testing.T, cache *LRU[string]) {
+				_, ok := cache.Get("")
+				assert.False(t, ok)
+				assert.Equal(t, int64(1), cache.Len())
 			},
 		},
 		{
@@ -308,7 +381,7 @@ func TestLRU_Peek(t *testing.T) {
 		check   func(t *testing.T, cache *LRU[string])
 	}{
 		{
-			name: "peek with empty key",
+			name: "peek with empty key from empty cache",
 			setup: func() *LRU[string] {
 				cache, _ := NewLRU[string](2)
 				return cache
@@ -316,6 +389,19 @@ func TestLRU_Peek(t *testing.T) {
 			key:     "",
 			wantVal: "",
 			wantOk:  false,
+			check:   func(t *testing.T, cache *LRU[string]) {},
+		},
+		{
+			name: "peek existing empty key",
+			setup: func() *LRU[string] {
+				cache, _ := NewLRU[string](2)
+				cache.Put("", "empty_key_value")
+				cache.Put("key1", "value1")
+				return cache
+			},
+			key:     "",
+			wantVal: "empty_key_value",
+			wantOk:  true,
 			check:   func(t *testing.T, cache *LRU[string]) {},
 		},
 		{
@@ -403,6 +489,17 @@ func TestLRU_Len(t *testing.T) {
 			name: "cache at capacity",
 			setup: func() *LRU[string] {
 				cache, _ := NewLRU[string](2)
+				cache.Put("key1", "value1")
+				cache.Put("key2", "value2")
+				return cache
+			},
+			wantSize: 2,
+		},
+		{
+			name: "cache with eviction including empty key",
+			setup: func() *LRU[string] {
+				cache, _ := NewLRU[string](2)
+				cache.Put("", "empty_value")
 				cache.Put("key1", "value1")
 				cache.Put("key2", "value2")
 				return cache
