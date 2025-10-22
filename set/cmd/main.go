@@ -6,8 +6,8 @@ import (
 )
 
 func main() {
-	setA := set.NewSet[int]()
-	setB := set.NewSet[int]()
+	setA := set.New[int]()
+	setB := set.New[int]()
 
 	setA.Add(1)
 	setA.Add(2)
@@ -17,24 +17,13 @@ func main() {
 	setB.Add(3)
 	setB.Add(4)
 
-	union, err := setA.Union(setB)
-	if err != nil {
-		fmt.Println(err)
-	}
+	union := setA.Union(setB)
+	intersection := setA.Intersection(setB)
+	difference := setA.Difference(setB)
 
-	intersection, err := setA.Intersection(setB)
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	difference, err := setA.Difference(setB)
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	unionSize, _ := union.Size()
-	intersectionSize, _ := intersection.Size()
-	differenceSize, _ := difference.Size()
+	unionSize := union.Size()
+	intersectionSize := intersection.Size()
+	differenceSize := difference.Size()
 
 	fmt.Printf("Union size: %d\n", unionSize)
 	fmt.Printf("Intersection size: %d\n", intersectionSize)
