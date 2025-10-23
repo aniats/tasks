@@ -4,124 +4,169 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 )
 
-func TestQueue_Enqueue(t *testing.T) {
-	q := NewQueue()
-
-	q.Enqueue(1)
-	assert.False(t, q.IsEmpty())
-	assert.Equal(t, 1, q.Size())
-
-	q.Enqueue("hello")
-	q.Enqueue(3.14)
-	q.Enqueue(true)
-
-	assert.Equal(t, 4, q.Size())
+type QueueTestSuite struct {
+	suite.Suite
+	queue *Queue
 }
 
-func TestQueue_Dequeue(t *testing.T) {
-	q := NewQueue()
-
-	_, err := q.Dequeue()
-	assert.Error(t, err)
-	assert.ErrorIs(t, err, errorQueueEmpty)
-
-	q.Enqueue(1)
-	q.Enqueue(2)
-	q.Enqueue(3)
-
-	item, err := q.Dequeue()
-	assert.NoError(t, err)
-	assert.Equal(t, 1, item)
-	assert.Equal(t, 2, q.Size())
-
-	item, _ = q.Dequeue()
-	assert.Equal(t, 2, item)
-
-	item, _ = q.Dequeue()
-	assert.Equal(t, 3, item)
-
-	assert.True(t, q.IsEmpty())
+func (suite *QueueTestSuite) SetupTest() {
+	suite.queue = NewQueue()
 }
 
-func TestQueue_Front(t *testing.T) {
-	q := NewQueue()
-
-	_, err := q.Front()
-	assert.Error(t, err)
-	assert.ErrorIs(t, err, errorQueueEmpty)
-
-	q.Enqueue("first")
-	q.Enqueue("second")
-	q.Enqueue("third")
-
-	initialSize := q.Size()
-
-	item, err := q.Front()
-	assert.NoError(t, err)
-	assert.Equal(t, "first", item)
-	assert.Equal(t, initialSize, q.Size())
-
-	item2, _ := q.Front()
-	assert.Equal(t, item, item2)
+func (suite *QueueTestSuite) TearDownTest() {
+	suite.queue = nil
 }
 
-func TestQueue_Back(t *testing.T) {
-	q := NewQueue()
+func (suite *QueueTestSuite) TestEnqueue() {
+	suite.queue.Enqueue(1)
+	assert.False(suite.T(), suite.queue.IsEmpty())
+	assert.Equal(suite.T(), 1, suite.queue.Size())
 
-	_, err := q.Back()
-	assert.Error(t, err)
+	suite.queue.Enqueue("hello")
+	suite.queue.Enqueue(3.14)
+	suite.queue.Enqueue(true)
 
-	q.Enqueue("first")
-	q.Enqueue("second")
-	q.Enqueue("third")
-
-	item, err := q.Back()
-	assert.NoError(t, err)
-	assert.Equal(t, "third", item)
+	assert.Equal(suite.T(), 4, suite.queue.Size())
 }
 
-func TestQueue_IsEmpty(t *testing.T) {
-	q := NewQueue()
+func (suite *QueueTestSuite) TestDequeue() {
+	_, err := suite.queue.Dequeue()
+	assert.Error(suite.T(), err)
+	assert.ErrorIs(suite.T(), err, errorQueueEmpty)
 
-	assert.True(t, q.IsEmpty())
+	suite.queue.Enqueue(1)
+	suite.queue.Enqueue(2)
+	suite.queue.Enqueue(3)
 
-	q.Enqueue(1)
-	assert.False(t, q.IsEmpty())
+	item, err := suite.queue.Dequeue()
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), 1, item)
+	assert.Equal(suite.T(), 2, suite.queue.Size())
 
-	q.Dequeue()
-	assert.True(t, q.IsEmpty())
+	item, _ = suite.queue.Dequeue()
+	assert.Equal(suite.T(), 2, item)
+
+	item, _ = suite.queue.Dequeue()
+	assert.Equal(suite.T(), 3, item)
+
+	assert.True(suite.T(), suite.queue.IsEmpty())
 }
 
-func TestQueue_Size(t *testing.T) {
-	q := NewQueue()
+func (suite *QueueTestSuite) TestFront() {
+	_, err := suite.queue.Front()
+	assert.Error(suite.T(), err)
+	assert.ErrorIs(suite.T(), err, errorQueueEmpty)
 
-	assert.Equal(t, 0, q.Size())
+	suite.queue.Enqueue("first")
+	suite.queue.Enqueue("second")
+	suite.queue.Enqueue("third")
+
+	initialSize := suite.queue.Size()
+
+	item, err := suite.queue.Front()
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), "first", item)
+	assert.Equal(suite.T(), initialSize, suite.queue.Size())
+
+	item2, _ := suite.queue.Front()
+	assert.Equal(suite.T(), item, item2)
+}
+
+func (suite *QueueTestSuite) TestBack() {
+	_, err := suite.queue.Back()
+	assert.Error(suite.T(), err)
+
+	suite.queue.Enqueue("first")
+	suite.queue.Enqueue("second")
+	suite.queue.Enqueue("third")
+
+	item, err := suite.queue.Back()
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), "third", item)
+}
+
+func (suite *QueueTestSuite) TestIsEmpty() {
+	assert.True(suite.T(), suite.queue.IsEmpty())
+
+	suite.queue.Enqueue(1)
+	assert.False(suite.T(), suite.queue.IsEmpty())
+
+	suite.queue.Dequeue()
+	assert.True(suite.T(), suite.queue.IsEmpty())
+}
+
+func (suite *QueueTestSuite) TestSize() {
+	assert.Equal(suite.T(), 0, suite.queue.Size())
 
 	for i := 1; i <= 5; i++ {
-		q.Enqueue(i)
-		assert.Equal(t, i, q.Size())
+		suite.queue.Enqueue(i)
+		assert.Equal(suite.T(), i, suite.queue.Size())
 	}
 
 	for i := 4; i >= 0; i-- {
-		q.Dequeue()
-		assert.Equal(t, i, q.Size())
+		suite.queue.Dequeue()
+		assert.Equal(suite.T(), i, suite.queue.Size())
 	}
 }
 
-func TestQueue_Clear(t *testing.T) {
-	q := NewQueue()
+func (suite *QueueTestSuite) TestClear() {
+	suite.queue.Clear()
+	assert.True(suite.T(), suite.queue.IsEmpty())
 
-	q.Clear()
-	assert.True(t, q.IsEmpty())
+	suite.queue.Enqueue(1)
+	suite.queue.Enqueue(2)
+	suite.queue.Enqueue(3)
 
-	q.Enqueue(1)
-	q.Enqueue(2)
-	q.Enqueue(3)
+	suite.queue.Clear()
 
-	q.Clear()
+	assert.True(suite.T(), suite.queue.IsEmpty())
+	assert.Equal(suite.T(), 0, suite.queue.Size())
+}
 
-	assert.True(t, q.IsEmpty())
-	assert.Equal(t, 0, q.Size())
+func (suite *QueueTestSuite) TestQueueOperationsSequence() {
+	suite.queue.Enqueue("a")
+	suite.queue.Enqueue("b")
+
+	front, _ := suite.queue.Front()
+	assert.Equal(suite.T(), "a", front)
+
+	back, _ := suite.queue.Back()
+	assert.Equal(suite.T(), "b", back)
+
+	item, _ := suite.queue.Dequeue()
+	assert.Equal(suite.T(), "a", item)
+
+	front, _ = suite.queue.Front()
+	assert.Equal(suite.T(), "b", front)
+
+	back, _ = suite.queue.Back()
+	assert.Equal(suite.T(), "b", back)
+}
+
+func (suite *QueueTestSuite) TestMixedTypes() {
+	suite.queue.Enqueue(42)
+	suite.queue.Enqueue("string")
+	suite.queue.Enqueue(true)
+	suite.queue.Enqueue(3.14)
+
+	assert.Equal(suite.T(), 4, suite.queue.Size())
+
+	item1, _ := suite.queue.Dequeue()
+	assert.Equal(suite.T(), 42, item1)
+
+	item2, _ := suite.queue.Dequeue()
+	assert.Equal(suite.T(), "string", item2)
+
+	item3, _ := suite.queue.Dequeue()
+	assert.Equal(suite.T(), true, item3)
+
+	item4, _ := suite.queue.Dequeue()
+	assert.Equal(suite.T(), 3.14, item4)
+}
+
+func TestQueueTestSuite(t *testing.T) {
+	suite.Run(t, new(QueueTestSuite))
 }

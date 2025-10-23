@@ -57,7 +57,7 @@ func (q *Queue) Size() int {
 }
 
 func (q *Queue) Clear() {
-	q.items = q.items[:0]
+	q.items = nil
 }
 
 func (q *Queue) String() string {
