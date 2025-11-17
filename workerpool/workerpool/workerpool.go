@@ -1,82 +1,110 @@
 package workerpool
 
 import (
+	"context"
 	"errors"
+	"log"
 	"sync"
+	"sync/atomic"
 )
 
-var (
-	ErrErrorsLimitExceeded = errors.New("errors limit exceeded")
-	ErrInvalidWorkerCount  = errors.New("worker count must be greater than zero")
-	ErrWorkerPoolClosed    = errors.New("worker pool is closed")
-	ErrWorkerPoolFull      = errors.New("worker pool is full")
-	ErrTaskInvalid         = errors.New("task invalid")
-)
+var ErrErrorsLimitExceeded = errors.New("errors limit exceeded")
 
 type Task func() error
 
-type WorkerPool struct {
-	mutex    sync.Mutex
-	doneChan chan struct{}
-	taskChan chan Task
-	isClosed bool
-	//workerCount int
-}
-
-func New(workerCount int) (*WorkerPool, error) {
-	if workerCount < 1 {
-		return nil, ErrInvalidWorkerCount
+func Run(tasks []Task, n, m int) error {
+	if len(tasks) == 0 {
+		return nil
 	}
 
-	workerPool := &WorkerPool{
-		//workerCount: workerCount,
-		mutex:    sync.Mutex{},
-		isClosed: false,
-		taskChan: make(chan Task, workerCount),
-		doneChan: make(chan struct{}),
+	if n <= 0 {
+		n = 1
 	}
 
-	go workerPool.Process()
-}
+	if m <= 0 {
+		return runWithoutErrorLimit(tasks, n)
+	}
 
-func (workerPool *WorkerPool) Process() {
-	wg := &sync.WaitGroup{}
-	wg.Add(len(workerPool.taskChan))
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-	for i := 0; i < len(workerPool.taskChan); i++ {
+	taskChan := make(chan Task, len(tasks))
+
+	var (
+		wg         sync.WaitGroup
+		errorCount int64
+	)
+
+	for _, task := range tasks {
+		taskChan <- task
+	}
+	close(taskChan)
+
+	for i := 0; i < n; i++ {
+		wg.Add(1)
+
 		go func() {
 			defer wg.Done()
-			// when taskChan would be closed, we will get out of range
-			for task := range workerPool.taskChan {
-				task()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case task, ok := <-taskChan:
+					if !ok {
+						return
+					}
+
+					if ctx.Err() != nil {
+						return
+					}
+
+					if err := task(); err != nil {
+						log.Printf("Task error: %v", err)
+						count := atomic.AddInt64(&errorCount, 1)
+						if count >= int64(m) {
+							cancel()
+							return
+						}
+					}
+				}
 			}
 		}()
 	}
 
 	wg.Wait()
-	close(workerPool.doneChan)
+
+	if atomic.LoadInt64(&errorCount) >= int64(m) {
+		return ErrErrorsLimitExceeded
+	}
+
+	return nil
 }
 
-func (workerPool *WorkerPool) AddTask(task Task) error {
-	if task == nil {
-		return ErrTaskInvalid
-	}
-
-	workerPool.mutex.Lock()
-	defer workerPool.mutex.Unlock()
-	// what if we have multiple pods accessing here some db connection... we're screwed, right?
-	if workerPool.isClosed {
-		return ErrWorkerPoolClosed
-	}
-
-	select {
-	case workerPool.taskChan <- task:
+func runWithoutErrorLimit(tasks []Task, n int) error {
+	if len(tasks) == 0 {
 		return nil
-	case <-workerPool.doneChan:
-		///
-	default:
-		return ErrWorkerPoolFull
 	}
-}
 
-func (workerPool *WorkerPool) Close() {}
+	taskChan := make(chan Task, len(tasks))
+	var wg sync.WaitGroup
+
+	for _, task := range tasks {
+		taskChan <- task
+	}
+	close(taskChan)
+
+	for i := 0; i < n; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for task := range taskChan {
+				if err := task(); err != nil {
+					log.Printf("Task error (ignored): %v", err)
+				}
+			}
+		}()
+	}
+
+	wg.Wait()
+	return nil
+}
